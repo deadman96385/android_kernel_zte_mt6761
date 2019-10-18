@@ -1,0 +1,13 @@
+#
+# Focaltech Touchscreen driver configuration
+#
+
+config TOUCHSCREEN_CHIPONE
+	bool "chipone touchpanel incell tp"
+	depends on I2C
+	default n
+	help
+	  Say Y here if you have chipone touchscreen.
+	  chipone controllers are multi touch controllers which can
+	  report 10 touches at a time.
+	  If unsure, say N.

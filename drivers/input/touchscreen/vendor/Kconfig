@@ -1,0 +1,78 @@
+#
+# Touchscreen driver configuration
+#
+menuconfig INPUT_TOUCHSCREEN
+	bool "Touchscreens"
+	help
+	  Say Y here, and a list of supported touchscreens will be displayed.
+	  This option doesn't affect the kernel.
+
+	  If unsure, say Y.
+
+if INPUT_TOUCHSCREEN
+
+config TOUCHSCREEN_VENDOR
+	bool "Vendor Touch Panel Driver"
+	help
+	  Say Y here if you have Vendor touch panel.
+
+	  If unsure, say N.
+
+	  To compile this dirver as a module, choose M here: the
+	  module will be called.
+
+if TOUCHSCREEN_VENDOR
+
+source "drivers/input/touchscreen/vendor/synaptics_2.7/Kconfig"
+config TOUCHSCREEN_HIMAX_CHIPSET
+	bool "Himax touchpanel CHIPSET"
+	depends on I2C
+	help
+	  Say Y here if you have a Himax CHIPSET touchscreen.
+	  HIMAX controllers are multi touch controllers which can
+	  report 10 touches at a time.
+
+          If unsure, say N.
+if TOUCHSCREEN_HIMAX_CHIPSET
+source "drivers/input/touchscreen/vendor/hxchipset/Kconfig"
+endif
+
+config TOUCHSCREEN_FTS_V2_1
+	bool "Focaltech Touchscreen"
+		depends on I2C
+		default n
+		help
+		  Say Y here if you have Focaltech touch panel.
+		  If unsure, say N.
+if TOUCHSCREEN_FTS_V2_1
+source "drivers/input/touchscreen/vendor/focaltech_touch_V2_1/Kconfig"
+endif
+
+config TOUCHSCREEN_TLSC6X
+	bool "Focaltech Touchscreen"
+		depends on I2C
+		default n
+		help
+		  Say Y here if you have tlsc6x touch panel.
+		  If unsure, say N.
+if TOUCHSCREEN_TLSC6X
+source "drivers/input/touchscreen/vendor/tlsc6x/Kconfig"
+endif
+
+config TS_FIRMWARE
+	string "config board firmware folder"
+
+config TP_COMMON_INTERFACE
+	bool "Open TP common interface"
+	depends on I2C
+	help
+	  Say Y here if you want to use TP common interface.
+
+	  If unsure, say N.
+
+endif
+
+source "drivers/input/touchscreen/vendor/chipone_tddi/Kconfig"
+source "drivers/input/touchscreen/vendor/focaltech_touch_v3/Kconfig"
+
+endif

@@ -10,6 +10,7 @@ menuconfig INPUT_TOUCHSCREEN
 	  If unsure, say Y.
 
 source "drivers/input/touchscreen/mediatek/Kconfig"
+source "drivers/input/touchscreen/vendor/Kconfig"
 
 if INPUT_TOUCHSCREEN
 

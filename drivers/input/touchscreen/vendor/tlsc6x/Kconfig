@@ -1,0 +1,9 @@
+#
+# tlsc6x touchscreen driver configuration
+#
+
+config TS_TLSC6X_MTK_INTERFACE
+	tristate "tlsc6x driver test over Dragon Board"
+	depends on TOUCHSCREEN_TLSC6X
+	help
+	  This enables support for tlsc6x driver in MTK platform.

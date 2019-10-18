@@ -1,0 +1,14 @@
+#
+# Focaltech Touchscreen driver configuration
+#
+
+config TOUCHSCREEN_FTS_DIRECTORY
+	string "Focaltech ts directory name"
+	default "focaltech_touch"
+	depends on TOUCHSCREEN_FTS_V2_1
+
+config TS_FTS_MTK_INTERFACE
+	tristate "Focaltech driver test over Dragon Board"
+	depends on TOUCHSCREEN_FTS_V2_1
+	help
+	  This enables support for Focaltech driver in MTK platform.
