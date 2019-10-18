@@ -685,6 +685,10 @@ static struct snd_soc_dai_link mt_soc_extspk_dai[] = {
 		.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_CBS_CFS |
 			   SND_SOC_DAIFMT_NB_NF,
 		.ops = &cs35l35_ops,
+#elif defined(CONFIG_SND_SOC_TFA98XX)
+		.codec_dai_name = "tfa98xx-aif-6-34",
+		.codec_name = "tfa98xx.6-0034",
+		.ops = &mt_machine_audio_ops,
 #else
 		.codec_dai_name = "snd-soc-dummy-dai",
 		.codec_name = "snd-soc-dummy",

@@ -30,6 +30,18 @@ struct mtk_spk_i2c_ctrl {
 enum mtk_spk_type {
 	MTK_SPK_NOT_SMARTPA = 0,
 	MTK_SPK_RICHTEK_RT5509,
+/* ZTE_MODIFY begin. 
+ * The values here can not be controlled by using macros
+ * because they need to be consistent with the values in file 
+ * vendor/mediatek/proprietary/hardware/audio/common/V3/include/AudioSmartPaController.h
+ */
+	MTK_SPK_AWINIC_AW8891,
+	MTK_SPK_NXP_TFA9888,
+	MTK_SPK_NXP_TFA9890,
+	MTK_SPK_NXP_TFA9891,
+	MTK_SPK_NXP_TFA9895,
+	MTK_SPK_NXP_TFA9897,
+/* ZTE_MODIFY end*/
 	MTK_SPK_MEDIATEK_MT6660,
 	MTK_SPK_TYPE_NUM
 };

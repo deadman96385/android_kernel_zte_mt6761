@@ -468,3 +468,6 @@ ifeq ($(CONFIG_SND_SOC_MT6359),y)
   subdir-ccflags-y += -Werror -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include
   subdir-ccflags-y += -Werror -I$(srctree)/drivers/misc/mediatek/accdet/mt6359
 endif
+
+# for NXP TFA98xx Smart PA
+obj-$(CONFIG_SND_SOC_TFA98XX) += tfa98xx/

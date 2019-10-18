@@ -493,6 +493,16 @@ int AudDrv_GPIO_EXTAMP_Select(int bEnable, int mode)
 			extamp_mode = 1;
 		else if (mode == 2)
 			extamp_mode = 2;
+		else if (mode == 4)
+			extamp_mode = 4;
+		else if (mode == 5)
+			extamp_mode = 5;
+		else if (mode == 6)
+			extamp_mode = 6;
+		else if (mode == 7)
+			extamp_mode = 7;
+		else if (mode == 8)
+			extamp_mode = 8;
 		else
 			extamp_mode = 3; /* default mode is 3 */
 

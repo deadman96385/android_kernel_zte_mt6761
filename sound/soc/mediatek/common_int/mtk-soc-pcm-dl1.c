@@ -703,6 +703,11 @@ static int mtk_soc_dl1_probe(struct platform_device *pdev)
 	/* config smartpa gpio pins, set initial state : SMARTPA_OFF */
 	AudDrv_GPIO_SMARTPA_Select(0);
 
+#if defined(CONFIG_ZTE_RCV_SPK_ANA_SWITCH)
+	/* config rcv_speaker_switch gpio pins, set initial state : RCVSPK_LOW */
+	AudDrv_GPIO_RCVSPK_Select(0);
+#endif
+
 	return snd_soc_register_platform(&pdev->dev, &mtk_soc_platform);
 }
 

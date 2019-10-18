@@ -32,6 +32,10 @@
 #include "../../codecs/mt6660.h"
 #endif /* CONFIG_SND_SOC_MT6660 */
 
+#if defined(CONFIG_SND_SOC_TFA98XX)
+#include "../../codecs/tfa98xx/tfa.h"
+#endif
+
 static unsigned int mtk_spk_type;
 static struct mtk_spk_i2c_ctrl mtk_spk_list[MTK_SPK_TYPE_NUM] = {
 	[MTK_SPK_NOT_SMARTPA] = {
@@ -55,6 +59,14 @@ static struct mtk_spk_i2c_ctrl mtk_spk_list[MTK_SPK_TYPE_NUM] = {
 		.codec_name = "MT6660_MT_0",
 	},
 #endif /* CONFIG_SND_SOC_MT6660 */
+#if defined(CONFIG_SND_SOC_TFA98XX)
+	[MTK_SPK_NXP_TFA9890] = {
+		.i2c_probe = tfa98xx_i2c_probe,
+		.i2c_remove = tfa98xx_i2c_remove,
+		.codec_dai_name = "tfa98xx-aif-6-34",
+		.codec_name = "speaker_amp.6-0034",
+	},
+#endif
 };
 
 static int mtk_spk_i2c_probe(struct i2c_client *client,
