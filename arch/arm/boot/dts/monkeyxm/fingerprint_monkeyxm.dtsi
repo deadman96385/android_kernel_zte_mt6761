@@ -1,0 +1,67 @@
+&spi1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+	gf_fingerprint@0 {
+		compatible = "goodix,goodix-fp";
+		reg = <0>;
+		spi-max-frequency = <8000000>;
+		status = "okay";
+	};
+};
+
+&pio {
+	fingerprint_irq: fingerprint_irq {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO4__FUNC_GPIO4>;
+			slew-rate = <0>;
+			bias-disable;
+		};
+	};
+
+	fingerprint_power_high: state_power_high {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO166__FUNC_GPIO166>;
+			slew-rate = <1>;
+			output-high;
+		};
+	};
+
+	fingerprint_power_low: state_power_low {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO166__FUNC_GPIO166>;
+			slew-rate = <1>;
+			output-low;
+		};
+	};
+
+	fingerprint_reset_high: state_reset_high {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO165__FUNC_GPIO165>;
+			slew-rate = <1>;
+			output-high;
+		};
+	};
+
+	fingerprint_reset_low: state_reset_low {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO165__FUNC_GPIO165>;
+			slew-rate = <1>;
+			output-low;
+		};
+	};
+};
+
+&goodix_fp {
+	interrupt-parent = <&pio>;
+	interrupts = <4 IRQ_TYPE_EDGE_RISING 4 0>;
+
+	pinctrl-names = "fingerprint_irq", "power_high", "power_low", "reset_high", "reset_low";
+	pinctrl-0 = <&fingerprint_irq>;
+	pinctrl-1 = <&fingerprint_power_high>;
+	pinctrl-2 = <&fingerprint_power_low>;
+	pinctrl-3 = <&fingerprint_reset_high>;
+	pinctrl-4 = <&fingerprint_reset_low>;
+	status = "okay";
+};
+

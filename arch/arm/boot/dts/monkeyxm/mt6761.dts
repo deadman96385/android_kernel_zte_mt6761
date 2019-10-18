@@ -1,0 +1,8 @@
+/*****************************************
+Do not modify dts file, please modify according dtsi file
+******************************************/
+
+#include "../mt6761.dts"
+#include "mtk_base_diff.dtsi"
+
+

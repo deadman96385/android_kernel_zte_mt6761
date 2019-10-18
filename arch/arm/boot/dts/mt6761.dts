@@ -2993,6 +2993,14 @@ mipi_rx_ana_csi0b: mipi_rx_ana_csi0b@11c11000 {
 	subpmic_pmu_eint: mt6370_pmu_eint {
 	};
 
+	goodix_fp: fingerprint {
+		compatible = "mediatek,goodix-fp";
+	};
+
+	silead_fp: fingerprint_silead {
+		compatible = "sil,silead_fp-pins";
+	};
+
 	pmic_clock_buffer_ctrl: pmic_clock_buffer_ctrl {
 		compatible = "mediatek,pmic_clock_buffer";
 		mediatek,clkbuf-quantity = <7>;

@@ -1,3 +1,6 @@
+ifneq ($(ZTE_BOARD_NAME),)
+	dts-dirs += $(ZTE_BOARD_NAME)
+else
 ifeq ($(CONFIG_OF),y)
 
 dtb-$(CONFIG_ARCH_ALPINE) += \
@@ -970,9 +973,11 @@ endif
 ifeq ($(strip $(CONFIG_BUILD_ARM_DTB_OVERLAY_IMAGE)), y)
 DTB_LIST += $(addsuffix .dtb, $(subst $\",,$(CONFIG_BUILD_ARM_DTB_OVERLAY_IMAGE_NAMES)))
 endif
+endif
 
 targets += dtbs dtbs_install
 targets += $(DTB_LIST)
+subdir-y := $(dts-dirs)
 
 always		:= $(DTB_LIST)
 clean-files	:= *.dtb

@@ -1,0 +1,60 @@
+/*
+ * when you want to delete some nodes or property, modify this dtsi.
+ * some diff between mtk and zte pluto.
+ */
+
+/{
+	/*add for Z3351S flash chip node*/
+	flashlights_aw3648: flashlights_aw3648 {
+		compatible = "mediatek,flashlights_aw3648";
+	};
+	flashlights_dummy_gpio: flashlights_dummy_gpio {
+		compatible = "mediatek,flashlights_dummy_gpio";
+	};
+
+	zte_misc: zte_misc {
+		status="okay";
+		compatible = "zte-misc";
+	};
+
+	charger_policy_service {
+		compatible = "zte,charger-policy-service";
+		status="okay";
+		policy,enable = <1>;
+		policy,expired-mode-enable = <1>;
+		policy,retry-times = <10>;
+		policy,timeout-seconds = <64800>;/* 18 hours */
+		policy,max-capacity = <70>;
+		policy,min-capacity = <50>;
+		policy,demo-max-capacity = <35>;
+		policy,demo-min-capacity = <30>;
+		policy,bms-phy-name = "battery";
+		policy,battery-phy-name = "charger";
+	};
+	ext_speaker_amp_info {
+		status="okay";
+		compatible = "zte,ext-speaker-amp-info";
+		zte,ext-spk-amp-mode = <3>;
+	};
+};
+
+&lk_charger {
+	/delete-property/ enable_pe_plus;
+	/delete-property/ enable_anime;
+};
+
+&charger {
+	/delete-property/ enable_pe_plus;
+	/delete-property/ enable_pe_2;
+	/delete-property/ enable_pe_3;
+	/delete-property/ enable_pe_4;
+};
+
+&i2c3 {
+	/delete-node/ rt9465@4b;
+};
+
+&flashlights_mt6370 {
+	decouple = <1>;
+	/delete-node/ channel@2;
+};

@@ -1,0 +1,45 @@
+&pio {
+	tp_int_input: eint@0 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO0__FUNC_GPIO0>;
+			slew-rate = <0>;
+			bias-pull-up;
+		};
+	};
+
+	state_rst_output0: rstoutput0 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO174__FUNC_GPIO174>;
+			slew-rate = <1>;
+			output-low;
+			bias-pull-down;
+		};
+	};
+
+	state_rst_output1: rstoutput1 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO174__FUNC_GPIO174>;
+			slew-rate = <1>;
+			output-high;
+			bias-pull-up;
+		};
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	tlsc6x_ts@2e {
+		compatible = "tlsc6x,tlsc6x_ts";
+		reg = <0x2e>;
+		pinctrl-names = "pmx_ts_init", "rst_output0", "rst_output1";
+		pinctrl-0 = <&tp_int_input &state_rst_output1>;
+		pinctrl-1 = <&state_rst_output0>;
+		pinctrl-2 = <&state_rst_output1>;
+		gpios = <&pio 174 0x00
+			&pio 0 0x00>;
+		vdd_name = "vdd28";
+		vdd28-supply = <&mt_pmic_vldo28_ldo_reg>;
+		TP_MAX_X = <479>;
+		TP_MAX_Y = <959>;
+	};
+};

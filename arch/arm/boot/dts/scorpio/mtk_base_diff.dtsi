@@ -1,0 +1,106 @@
+/*
+ * when you want to delete some nodes or property, modify this dtsi.
+ * some diff between mtk and zte scorpio.
+ */
+
+#include "../bat_setting/battery_protect_policy_080509200102.dtsi"
+
+/{
+	/*add for Z3351S flash chip node*/
+	flashlights_aw3648: flashlights_aw3648 {
+		compatible = "mediatek,flashlights_aw3648";
+	};
+
+	zte_misc: zte_misc {
+		status="okay";
+		compatible = "zte-misc";
+	};
+
+	charger_policy_service {
+		compatible = "zte,charger-policy-service";
+		status="okay";
+		policy,enable = <1>;
+		policy,expired-mode-enable = <1>;
+		policy,retry-times = <10>;
+		policy,timeout-seconds = <64800>;/* 18 hours */
+		policy,max-capacity = <70>;
+		policy,min-capacity = <50>;
+		policy,demo-max-capacity = <35>;
+		policy,demo-min-capacity = <30>;
+		policy,bms-phy-name = "battery";
+		policy,battery-phy-name = "charger";
+	};
+	ext_speaker_amp_info {
+		status="okay";
+		compatible = "zte,ext-speaker-amp-info";
+		zte,ext-spk-amp-mode = <1>;
+	};
+};
+
+/* NFC start */
+&i2c3 {
+		nfc@29 {
+				status = "okay";
+		nxp,pn544-fw-dwnld = <&pio 173 0x0>;
+		nxp,pn544-ven = <&pio 172 0x0>;
+		nxp,pn544-irq = <&pio 10 0x0>;
+				gpio-rst = <172>;
+				gpio-rst-std = <&pio 172 0x0>;
+				gpio-irq = <10>;
+				gpio-irq-std = <&pio 10 0x0>;
+		};
+
+};
+
+&nfc {
+		compatible = "mediatek,nfc";
+		gpio-rst = <172>;
+		gpio-rst-std = <&pio 172 0x0>;
+		gpio-irq = <10>;
+		gpio-irq-std = <&pio 10 0x0>;
+};
+
+&irq_nfc {
+		compatible = "mediatek,irq_nfc-eint";
+};
+/* NFC end */
+
+&i2c5 {
+	bq2560x: bq2560x@6b {
+		compatible = "ti,bq2560x_charger";
+		status = "okay";
+		reg = <0x6b>;
+
+		charger_name = "primary_chg";
+		alias_name = "bq2560x";
+	};
+};
+
+&lk_charger {
+	/delete-property/ enable_anime;
+	/delete-property/ enable_pe_plus;
+};
+
+&charger {
+	/delete-property/ enable_pe_plus;
+	/delete-property/ enable_pe_2;
+	/delete-property/ enable_pe_3;
+	/delete-property/ enable_pe_4;
+	/delete-property/ enable_type_c;
+};
+
+/ {
+	/delete-node/ mt6370_pmu_dts;
+};
+
+/ {
+	/delete-node/ type_c_port0;
+};
+
+&i2c3 {
+	/delete-node/ rt9465@4b;
+};
+
+/ {
+	/delete-node/ fingerprint;
+};

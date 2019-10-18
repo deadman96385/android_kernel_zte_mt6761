@@ -1,0 +1,47 @@
+/*
+ * when you want to delete some nodes or property, modify this dtsi.
+ * some diff between mtk and zte pluto.
+ */
+
+/{
+
+	zte_misc: zte_misc {
+		status="okay";
+		compatible = "zte-misc";
+	};
+
+	charger_policy_service {
+		compatible = "zte,charger-policy-service";
+		status="okay";
+		policy,enable = <1>;
+		policy,expired-mode-enable = <1>;
+		policy,retry-times = <10>;
+		policy,timeout-seconds = <64800>;/* 18 hours */
+		policy,max-capacity = <70>;
+		policy,min-capacity = <50>;
+		policy,bms-phy-name = "battery";
+		policy,battery-phy-name = "charger";
+	};
+	ext_speaker_amp_info {
+		status="okay";
+		compatible = "zte,ext-speaker-amp-info";
+		zte,ext-spk-amp-mode = <1>;
+	};
+};
+
+&lk_charger {
+	/delete-property/ enable_pe_plus;
+	/delete-property/ enable_anime;
+};
+
+&charger {
+	/delete-property/ enable_pe_plus;
+	/delete-property/ enable_pe_2;
+	/delete-property/ enable_pe_3;
+	/delete-property/ enable_pe_4;
+};
+&flashlights_mt6370 {
+	decouple = <1>;
+	/delete-node/ channel@2;
+};
+

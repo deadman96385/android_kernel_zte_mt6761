@@ -1,0 +1,54 @@
+&pio {
+	tp_int_input: eint@0 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO0__FUNC_GPIO0>;
+			slew-rate = <0>;
+			bias-pull-up;
+		};
+	};
+
+	state_rst_output0: rstoutput0 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO174__FUNC_GPIO174>;
+			slew-rate = <1>;
+			output-low;
+			bias-pull-down;
+		};
+	};
+
+	state_rst_output1: rstoutput1 {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO174__FUNC_GPIO174>;
+			slew-rate = <1>;
+			output-high;
+			bias-pull-up;
+		};
+	};
+};
+
+&i2c0 {
+	status = "okay";
+	focaltech@38 {
+		compatible = "focaltech,fts";
+		reg = <0x38>;
+		interrupt-parent = <&pio>;
+		interrupts = <0 IRQ_TYPE_EDGE_FALLING 0 0>;
+		vcc_i2c-supply = <&mt_pmic_vldo28_ldo_reg>;
+		focaltech,reset-gpio = <&pio 174 0x00>;
+		focaltech,irq-gpio = <&pio 0 0x00>;
+		focaltech,display-coords = <0 0 719 1559>;
+		focaltech,max-touch-number = <10>;
+	};
+
+	chipone_tddi@58 {
+		compatible = "chipone-tddi";
+		reg = <0x58>;
+		interrupt-parent = <&pio>;
+		interrupts = <0 IRQ_TYPE_EDGE_FALLING 0 0>;
+		chipone,rst-gpio = <&pio 174 0x00>;
+		chipone,irq-gpio = <&pio 0 0x00>;
+		chipone,x-res = <719>;
+		chipone,y-res = <1559>;
+	};
+};
+
