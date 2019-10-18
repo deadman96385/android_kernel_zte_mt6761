@@ -73,6 +73,13 @@ config CUSTOM_LCM_Y
 	  If you want to change LCM resolution, please set it.
 	  defaule value is "0".
 
+config GPIO_LCM_BL_PWM_CTL
+	bool "enable lcm backlight pwm control"
+	default n
+	help
+	  define GPIO_LCM_BL_PWM_CTL to enable lcm backlight pwm control.
+	  If you want to use lcm backlight pwm control, please make sure it is Y in xxx_defconfig.mk.
+	  If unsure, set N.
 config MTK_FB_SUPPORT_ASSERTION_LAYER
 	bool "AEE Assertion Layer Support"
 	depends on MTK_FB
@@ -159,3 +166,43 @@ config MTK_DISPLAY_LOW_MEMORY_DEBUG_SUPPORT
 	  If enable this option, display some debug buffer will be reduced or closed.
 	  If you want to use Meditek display low memory debug, please make sure it is Y in xxx_defconfig.mk.
 	  If unsure, set N.
+
+#/*zte add for lcd common function begin */
+config ZTE_LCD_COMMON_FUNCTION
+        bool "Support for ZTE lcd common function"
+        default n
+config ZTE_LCD_BACKLIGHT_LEVEL_CURVE
+        depends on ZTE_LCD_COMMON_FUNCTION
+        bool "Support for ZTE lcd backlight curve"
+config ZTE_LCD_VDDIO_ALWAYS_ON
+        depends on ZTE_LCD_COMMON_FUNCTION
+        bool "Support for ZTE lcd vddio always on"
+config ZTE_LCD_REG_DEBUG
+        depends on ZTE_LCD_COMMON_FUNCTION
+        bool "Support lcd register debug in root version"
+config ZTE_LCD_DCSBL_CABC_GRADIENT
+        depends on ZTE_LCD_COMMON_FUNCTION
+        bool "Support for ZTE dcs bl cabc gradient effect"
+config ZTE_LCD_CABC3_EXTREME_POWER_SAVE
+        depends on ZTE_LCD_COMMON_FUNCTION
+        bool "Support for ZTE extreme power save modem cabc"
+config ZTE_LCD_ESD_ERROR_CTRL
+        bool "Support for lcd esd check error ctrl"
+        default n
+config ZTE_LCD_DELAY_OPEN_BL
+        depends on ZTE_LCD_COMMON_FUNCTION
+        bool "Support for ZTE lcd delay open bl"
+config ZTE_LCDBL_I2C_CTRL_VSP_VSN
+        depends on ZTE_LCD_COMMON_FUNCTION
+        bool "Support for ZTE vsp vsn power ctrl"
+config ZTE_LCD_DISABLE_SSC
+        depends on ZTE_LCD_COMMON_FUNCTION
+        bool "Support for ZTE disable SPRD ssc func in panel dtsi"
+config ZTE_LCD_CUSTOM_AP_PWM_BACKLIGHT
+        depends on ZTE_LCD_COMMON_FUNCTION
+        bool "Support for ZTE custom ap pwm backlight"
+config ZTE_LCD_TP_GESTURE_POWER_OFF_SEQ
+        depends on ZTE_LCD_COMMON_FUNCTION
+        bool "Support lcd tp gesture power off sequence"
+        default n
+#/*zte add for lcd common function end */

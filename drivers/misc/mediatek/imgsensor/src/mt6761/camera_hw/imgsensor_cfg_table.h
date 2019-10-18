@@ -87,6 +87,7 @@ enum IMGSENSOR_HW_PIN_STATE {
 #define	Vol_2500  IMGSENSOR_HW_PIN_STATE_LEVEL_2500
 #define	Vol_2800  IMGSENSOR_HW_PIN_STATE_LEVEL_2800
 #define	Vol_2900  IMGSENSOR_HW_PIN_STATE_LEVEL_2900
+#define	Vol_None  IMGSENSOR_HW_PIN_STATE_NONE
 
 enum IMGSENSOR_HW_ID {
 	IMGSENSOR_HW_ID_REGULATOR,
@@ -101,15 +102,19 @@ enum IMGSENSOR_HW_ID {
 #define IMGSENSOR_I2C_DRV_NAME_0  "kd_camera_hw"
 #define IMGSENSOR_I2C_DRV_NAME_1  "kd_camera_hw_bus2"
 #define IMGSENSOR_I2C_DRV_NAME_2  "kd_camera_hw_bus3"
+#define IMGSENSOR_I2C_DRV_NAME_3  "kd_camera_hw_bus4"
+
 
 #define IMGSENSOR_I2C_OF_DRV_NAME_0 "mediatek,camera_main"
 #define IMGSENSOR_I2C_OF_DRV_NAME_1 "mediatek,camera_sub"
 #define IMGSENSOR_I2C_OF_DRV_NAME_2 "mediatek,camera_main_two"
+#define IMGSENSOR_I2C_OF_DRV_NAME_3 "mediatek,camera_sub_two"
 
 enum IMGSENSOR_I2C_DEV {
 	IMGSENSOR_I2C_DEV_0,
 	IMGSENSOR_I2C_DEV_1,
 	IMGSENSOR_I2C_DEV_2,
+	IMGSENSOR_I2C_DEV_3,
 	IMGSENSOR_I2C_DEV_MAX_NUM,
 };
 
@@ -151,6 +156,9 @@ struct IMGSENSOR_HW_DEVICE {
 };
 
 extern struct IMGSENSOR_HW_CFG       imgsensor_custom_config[];
+#if defined(OV16885_Z6201V_062_MIPI_RAW) || defined(GC5025_Z6201V_094_MIPI_RAW)
+extern struct IMGSENSOR_HW_CFG imgsensor_custom_config_b[];
+#endif
 extern struct IMGSENSOR_HW_POWER_SEQ platform_power_sequence[];
 extern struct IMGSENSOR_HW_POWER_SEQ sensor_power_sequence[];
 extern enum IMGSENSOR_RETURN

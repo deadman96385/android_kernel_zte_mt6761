@@ -385,12 +385,24 @@ static void disp_pwm_set_drverIC_en(enum disp_pwm_id_t id, int enabled)
 #endif
 }
 
+#ifdef CONFIG_GPIO_LCM_BL_PWM_CTL
+extern void mtk_gpio_set_mode_ex(unsigned long pin, unsigned long mode);
+extern void mtk_gpio_out_value_ex(unsigned int offset, int value);
+extern void gpio_dump_regs_range(int start, int end);
+#endif
 static void disp_pwm_set_enabled(struct cmdqRecStruct *cmdq,
 	enum disp_pwm_id_t id, int enabled)
 {
 	unsigned long reg_base = pwm_get_reg_base(id);
 	int index = index_of_pwm(id);
 	int old_en;
+#ifdef CONFIG_GPIO_LCM_BL_PWM_CTL
+#ifdef CONFIG_MACH_MT6739
+	int pwm_gpio = 85;
+#else
+	int pwm_gpio = 43;
+#endif
+#endif
 
 	old_en = atomic_xchg(&g_pwm_en[index], enabled);
 	if (old_en == enabled)
@@ -402,6 +414,10 @@ static void disp_pwm_set_enabled(struct cmdqRecStruct *cmdq,
 #endif
 		/* Always use CPU to config DISP_PWM EN */
 		/* to avoid race condition */
+#ifdef CONFIG_GPIO_LCM_BL_PWM_CTL
+			mtk_gpio_set_mode_ex(pwm_gpio, 1);
+			gpio_dump_regs_range(pwm_gpio, pwm_gpio);
+#endif
 		DISP_REG_MASK(NULL, reg_base + DISP_PWM_EN_OFF, 0x1, 0x1);
 		PWM_MSG("PWN_EN (by CPU) = 0x1");
 
@@ -421,6 +437,11 @@ static void disp_pwm_set_enabled(struct cmdqRecStruct *cmdq,
 #endif
 		PWM_MSG("PWN_EN (by CPU) = 0x0");
 
+#ifdef CONFIG_GPIO_LCM_BL_PWM_CTL
+			mtk_gpio_set_mode_ex(pwm_gpio, 0);
+			mtk_gpio_out_value_ex(pwm_gpio, 0);
+			gpio_dump_regs_range(pwm_gpio, pwm_gpio);
+#endif
 		disp_pwm_set_drverIC_en(id, enabled);
 	}
 

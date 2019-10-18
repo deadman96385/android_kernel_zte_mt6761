@@ -2774,7 +2774,9 @@ static void mtkfb_shutdown(struct platform_device *pdev)
 		return;
 	}
 	primary_display_set_power_mode(FB_SUSPEND);
+	primary_display_set_shutdown_suspend_flag(1);
 	primary_display_suspend();
+	primary_display_set_shutdown_suspend_flag(0);
 	MTKFB_LOG("[FB Driver] leave mtkfb_shutdown\n");
 }
 

@@ -130,7 +130,8 @@ enum IMGSENSOR_RETURN imgsensor_oc_interrupt(
 
 		if (sensor_idx == IMGSENSOR_SENSOR_IDX_MAIN ||
 			sensor_idx == IMGSENSOR_SENSOR_IDX_SUB ||
-			sensor_idx == IMGSENSOR_SENSOR_IDX_MAIN2) {
+			sensor_idx == IMGSENSOR_SENSOR_IDX_MAIN2 ||
+			sensor_idx == IMGSENSOR_SENSOR_IDX_SUB2 ) {
 
 			preg = regulator_get(pdevice, "vcamio");
 			if (preg && regulator_is_enabled(preg)) {
@@ -158,7 +159,8 @@ enum IMGSENSOR_RETURN imgsensor_oc_interrupt(
 		}
 		if (sensor_idx == IMGSENSOR_SENSOR_IDX_MAIN ||
 			sensor_idx == IMGSENSOR_SENSOR_IDX_SUB ||
-			sensor_idx == IMGSENSOR_SENSOR_IDX_MAIN2) {
+			sensor_idx == IMGSENSOR_SENSOR_IDX_MAIN2 ||
+			sensor_idx == IMGSENSOR_SENSOR_IDX_SUB2) {
 			pmic_enable_interrupt(INT_VCAMIO_OC, 0, "camera");
 			pr_debug("[regulator] %s INT_VCAMIO_OC %d\n",
 			__func__,  enable);

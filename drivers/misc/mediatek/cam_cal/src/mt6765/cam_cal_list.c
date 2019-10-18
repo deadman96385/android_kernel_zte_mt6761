@@ -59,6 +59,7 @@ struct stCAM_CAL_LIST_STRUCT g_camCalList[] = {
 	{HI556_SENSOR_ID, 0x51, Common_read_region},
 	{S5K5E8YX_SENSOR_ID, 0x5a, Common_read_region},
 	{S5K5E8YXREAR2_SENSOR_ID, 0x5a, Common_read_region},
+	{ZTE_OV16885_062_A7S_SENSOR_ID, 0xA0, Common_read_region},
 	/*  ADD before this line */
 	{0, 0, 0}       /*end of list */
 };

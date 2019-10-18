@@ -104,6 +104,16 @@ ccflags-$(CONFIG_MTK_LCM) += -I$(srctree)/drivers/misc/mediatek/lcm/inc
 ccflags-y += -I$(srctree)/drivers/staging/android/ion \
              -I$(srctree)/drivers/staging/android/ion/mtk
 
+ifeq ($(CONFIG_ZTE_LCD_COMMON_FUNCTION),y)
+obj-y += zte_lcd_common.o
+endif
+ifeq ($(CONFIG_ZTE_LCDBL_I2C_CTRL_VSP_VSN),y)
+obj-y  += zte_lcdbl_tps65132b.o
+endif
+ifeq ($(CONFIG_ZTE_LCD_REG_DEBUG),y)
+obj-y += zte_lcd_reg_debug.o
+endif
+
 ifeq ($(CONFIG_MTK_INTERNAL_HDMI_SUPPORT), y)
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/hdmi/
 endif

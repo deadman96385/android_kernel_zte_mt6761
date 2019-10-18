@@ -14,5 +14,12 @@
 MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/dramc/$(MTK_PLATFORM)
 
+#zte add for ddr memtest
+ifneq ($(strip $(TARGET_BUILD_VARIANT)),user)
+#ifeq ($(CONFIG_MTK_PLATFORM), "mt6761")
+ccflags-y += -DDRAMC_MEMTEST_DEBUG_SUPPORT
+#endif
+endif
+
 obj-$(CONFIG_MTK_DRAMC) := dramc.o mtk_lastdramc.o mtk_memtest.o mtk_rshmoo.o
 obj-$(CONFIG_MTK_DRAMC) += $(subst ",,$(CONFIG_MTK_PLATFORM))/

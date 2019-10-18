@@ -30,3 +30,7 @@ config BACKLIGHT_SUPPORT_LM3697
 	  Set y to support.
 	  Set n to disable.
 	  Charge pump driver for external backlight.
+
+config ZTE_LCD_BACKLIGHT_LEVEL_CURVE
+	bool "Support backlight curve"
+	default n

@@ -1450,7 +1450,10 @@ int sensor_get_data_from_hub(uint8_t sensorType,
 		break;
 	case ID_LIGHT:
 		data->time_stamp = data_t->time_stamp;
-		data->light = data_t->light;
+		data->data[0] = data_t->data[0];
+		data->data[1] = data_t->data[1];
+		data->data[2] = data_t->data[2];
+		data->data[3] = data_t->data[3];
 		break;
 	case ID_PROXIMITY:
 		data->time_stamp = data_t->time_stamp;

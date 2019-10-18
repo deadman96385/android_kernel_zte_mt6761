@@ -36,7 +36,7 @@ void set_esd_check_mode(unsigned int mode);
 int do_lcm_vdo_lp_read(struct ddp_lcm_read_cmd_table *read_table);
 int do_lcm_vdo_lp_write(struct ddp_lcm_write_cmd_table *write_table,
 			unsigned int count);
-
+extern bool tp_esd_check(void);
 
 
 #endif

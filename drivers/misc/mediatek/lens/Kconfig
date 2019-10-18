@@ -288,3 +288,11 @@ config MTK_LENS_WV511AAF_SUPPORT
 	  This config is used to enable the corresponding
 	  lens driver for the camera sensor module
 	  Set as y if the driver is used in this project
+config MTK_LENS_CES6301AF_SUPPORT
+	bool "CES6301AF Lens Driver"
+	default n
+	help
+	  CES6301AF Lens Driver
+	  This config is used to enable the corresponding
+	  lens driver for the camera sensor module
+	  Set as y if the driver is used in this project

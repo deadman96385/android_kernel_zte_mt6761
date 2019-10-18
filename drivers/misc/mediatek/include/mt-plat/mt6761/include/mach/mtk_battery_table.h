@@ -38,7 +38,7 @@
  * load g_FG_PSEUDO100_Tx from dtsi
  */
 #define MULTI_BATTERY 0
-#define BATTERY_ID_CHANNEL_NUM 1
+#define BATTERY_ID_CHANNEL_NUM 2
 #define BATTERY_PROFILE_ID 0
 #define TOTAL_BATTERY_NUMBER 4
 
@@ -196,8 +196,8 @@ int g_temperature[MAX_TABLE] = {
 };
 
 
-#define BAT_NTC_10 1
-#define BAT_NTC_47 0
+#define BAT_NTC_10 0
+#define BAT_NTC_47 1
 
 #if (BAT_NTC_10 == 1)
 #define RBAT_PULL_UP_R             16900
@@ -212,7 +212,7 @@ int g_temperature[MAX_TABLE] = {
 #define BIF_NTC_R 16000
 
 #if (BAT_NTC_10 == 1)
-struct FUELGAUGE_TEMPERATURE Fg_Temperature_Table[21] = {
+struct FUELGAUGE_TEMPERATURE Fg_Temperature_Table[22] = {
 		{-40, 195652},
 		{-35, 148171},
 		{-30, 113347},
@@ -233,12 +233,13 @@ struct FUELGAUGE_TEMPERATURE Fg_Temperature_Table[21] = {
 		{45, 4917},
 		{50, 4161},
 		{55, 3535},
-		{60, 3014}
+		{60, 3014},
+		{65, 2493}
 };
 #endif
 
 #if (BAT_NTC_47 == 1)
-struct FUELGAUGE_TEMPERATURE Fg_Temperature_Table[21] = {
+struct FUELGAUGE_TEMPERATURE Fg_Temperature_Table[22] = {
 		{-40, 1747920},
 		{-35, 1245428},
 		{-30, 898485},
@@ -259,7 +260,8 @@ struct FUELGAUGE_TEMPERATURE Fg_Temperature_Table[21] = {
 		{45, 20048},
 		{50, 16433},
 		{55, 13539},
-		{60, 11210}
+		{60, 11210},
+		{65, 8881}
 };
 #endif
 

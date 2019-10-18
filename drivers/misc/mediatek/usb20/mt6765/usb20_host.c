@@ -218,13 +218,13 @@ static void issue_vbus_work(int ops, int delay)
 				&work->dwork, msecs_to_jiffies(delay));
 }
 
-static void mt_usb_vbus_on(int delay)
+void mt_usb_vbus_on(int delay)
 {
 	DBG(0, "vbus_on\n");
 	issue_vbus_work(VBUS_OPS_ON, delay);
 }
 
-static void mt_usb_vbus_off(int delay)
+void mt_usb_vbus_off(int delay)
 {
 	DBG(0, "vbus_off\n");
 	issue_vbus_work(VBUS_OPS_OFF, delay);

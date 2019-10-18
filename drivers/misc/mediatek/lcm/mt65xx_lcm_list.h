@@ -294,6 +294,21 @@ extern struct LCM_DRIVER nt36672_fhdp_dsi_vdo_auo_lcm_drv;
 extern struct LCM_DRIVER nt36672_fhdp_dsi_vdo_auo_laneswap_lcm_drv;
 extern struct LCM_DRIVER ili9881h_hdp_dsi_vdo_ilitek_rt5081_19_9_lcm_drv;
 extern struct LCM_DRIVER hx83112b_fhdp_dsi_cmd_auo_rt5081_lcm_drv;
+extern struct LCM_DRIVER otm8019a_480p_dsi_vdo_ctc_lcetron_6771_lcm_drv;
+extern struct LCM_DRIVER st7701s_480p_dsi_vdo_hsd_easyquick_6771_lcm_drv;
+extern struct LCM_DRIVER st7701s_480p_dsi_vdo_hsd_lcetron_6771_lcm_drv;
+extern struct LCM_DRIVER jd9161Z_480p_dsi_vdo_ctc_lead_6771_lcm_drv;
+extern struct LCM_DRIVER zte_carezhxm_jd9366d_hdp_5p45_lianchuang_panda_lcm_drv;/*Z5155T*/
+extern struct LCM_DRIVER zte_carezhxm_st7703_hdp_5p45_skyworth_hsd_lcm_drv;/*Z5155T*/
+extern struct LCM_DRIVER zte_carezhxm_ili9881c_hdp_5p45_skyworth_huajiacai_lcm_drv;/*Z5155T*/
+extern struct LCM_DRIVER zte_monkeyxm_ft8006p_720p_6p_lcetron_lcm_drv;/*Z620DL*/
+extern struct LCM_DRIVER zte_monkeyxm_icnl9911_720p_6p_skyworth_lcm_drv;/*Z620DL*/
+extern struct LCM_DRIVER zte_monkeyxm_icnl9911_720p_6p_skyworth_4lane_lcm_drv;/*Z620DL*/
+extern struct LCM_DRIVER zte_monkeyxm_ft8006p_720p_6p_lead_lcm_drv;/*Z620DL*/
+extern struct LCM_DRIVER zte_scorpio_ft8006p_720p_6p_lcetron_lcm_drv;/*Z620DL*/
+extern struct LCM_DRIVER zte_scorpio_ft8006p_720p_6p_lead_huajiacai_lcm_drv;/*Z620DL*/
+extern struct LCM_DRIVER zte_scorpio_icnl9911_720p_6p_skyworth_lcm_drv;/*Z620DL*/
+extern struct LCM_DRIVER zte_scorpio_icnl9911_720p_6p_skyworth_4lane_lcm_drv;/*Z620DL*/
 
 #ifdef BUILD_LK
 extern void mdelay(unsigned long msec);

@@ -1,0 +1,12 @@
+
+config CUSTOM_KERNEL_SAR_SENSOR
+	bool "CUSTOM KERNEL SAR Config"
+	help
+	  To detect sar sensor
+
+config CUSTOM_sx932x
+	bool "CUSTOM KERNEL SAR sx932x Config"
+	help
+	  To enable SAR sx932x sensor
+
+

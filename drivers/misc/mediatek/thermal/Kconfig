@@ -5,3 +5,5 @@ config MTK_THERMAL_PA_VIA_ATCMD
 	  to query modem RF temperature
 	  via AT command.
 	  (RIL sockets)
+config ZTE_THERMAL_INPUTCHARGER_LIMIT
+	bool "Switch battery charger to input charger when thermal limit"

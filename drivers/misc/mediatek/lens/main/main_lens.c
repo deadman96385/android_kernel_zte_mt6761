@@ -107,6 +107,8 @@ static struct stAF_DrvList g_stAF_DrvList[MAX_NUM_OF_LENS] = {
 	},
 	{1, AFDRV_DW9714AF, DW9714AF_SetI2Cclient, DW9714AF_Ioctl,
 	 DW9714AF_Release, DW9714AF_GetFileName, NULL},
+	{1, AFDRV_CES6301AF, CES6301AF_SetI2Cclient, CES6301AF_Ioctl,
+	 CES6301AF_Release, CES6301AF_GetFileName, NULL},
 	{1, AFDRV_DW9718SAF, DW9718SAF_SetI2Cclient, DW9718SAF_Ioctl,
 	 DW9718SAF_Release, DW9718SAF_GetFileName, NULL},
 	{1, AFDRV_DW9719TAF, DW9719TAF_SetI2Cclient, DW9719TAF_Ioctl,
@@ -700,7 +702,19 @@ static int AF_i2c_remove(struct i2c_client *client)
 {
 	return 0;
 }
+static void  AF_powerdown_mode(void)
+{
+	char puSendCmd[2] = { 0x80, 0x00 };
+	int i4RetValue_af = 0;
 
+	g_pstAF_I2Cclient->addr = 0x18;
+	g_pstAF_I2Cclient->addr = g_pstAF_I2Cclient->addr >> 1;
+	i4RetValue_af = i2c_master_send(g_pstAF_I2Cclient, puSendCmd, 2);
+	LOG_INF("af power down\n");
+	if (i4RetValue_af < 0) {
+				LOG_INF("I2C send failed!!\n");
+	}
+}
 /* Kirby: add new-style driver {*/
 static int AF_i2c_probe(struct i2c_client *client,
 			const struct i2c_device_id *id)
@@ -727,7 +741,10 @@ static int AF_i2c_probe(struct i2c_client *client,
 #if !defined(CONFIG_MTK_LEGACY)
 	AFRegulatorCtrl(0);
 #endif
-
+	if ((strncmp(CONFIG_TS_FIRMWARE, "firmware_hill", 13) == 0) ||
+		(strncmp(CONFIG_TS_FIRMWARE, "firmware_deftxm", 15) == 0)) {
+		AF_powerdown_mode();
+	}
 	LOG_INF("Attached!!\n");
 
 	return 0;

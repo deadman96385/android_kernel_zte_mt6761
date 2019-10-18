@@ -599,9 +599,10 @@ struct LCM_DSI_PARAMS {
 	unsigned int edp_panel;
 	unsigned int customization_esd_check_enable;
 	unsigned int esd_check_enable;
+	unsigned int lcm_vsp_vsn_voltage; /* mv */
 	unsigned int lcm_int_te_monitor;
 	unsigned int lcm_int_te_period;
-
+	unsigned int lcm_backlight_curve_mode;
 	unsigned int lcm_ext_te_monitor;
 	unsigned int lcm_ext_te_enable;
 
@@ -858,6 +859,9 @@ enum LCM_DRV_IOCTL_CMD {
 	LCM_DRV_IOCTL_ENABLE_CMD_MODE = 0x100,
 };
 
+#ifdef CONFIG_ZTE_LCD_COMMON_FUNCTION
+struct zte_lcd_ctrl_data;
+#endif
 struct LCM_DRIVER {
 	const char *name;
 	void (*set_util_funcs)(const struct LCM_UTIL_FUNCS *util);
@@ -913,6 +917,9 @@ struct LCM_DRIVER {
 	void (*set_pwm_for_mix)(int enable);
 
 	void (*aod)(int enter);
+#ifdef CONFIG_ZTE_LCD_COMMON_FUNCTION
+	struct zte_lcd_ctrl_data *zte_lcd_ctrl;
+#endif
 };
 
 /* LCM Driver Functions */
@@ -927,7 +934,7 @@ extern enum LCM_DSI_MODE_CON lcm_dsi_mode;
 extern int display_bias_enable(void);
 extern int display_bias_disable(void);
 extern int display_bias_regulator_init(void);
-
-
+extern int suspend_tp_need_awake(void);
+extern void set_lcd_reset_processing(bool enable);
 
 #endif /* __LCM_DRV_H__ */

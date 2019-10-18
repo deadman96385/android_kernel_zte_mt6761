@@ -113,4 +113,12 @@ extern int mtk_chr_is_charger_exist(unsigned char *exist);
 extern bool is_power_path_supported(void);
 extern int charger_get_vbus(void);
 
+extern int charger_manager_set_input_current_limit_policy(int usb_input_current);
+extern int charger_manager_get_enable_status(void);
+extern int charger_manager_get_charge_voltage_max(void);
+extern int charger_manager_battery_charging_enabled(int enable);
+extern int charger_manager_set_ship_mode(int enable);
+extern int charger_manager_get_ship_mode(void);
+extern bool charger_policy_get_status(void);
+
 #endif /* __MTK_CHARGER_H__ */

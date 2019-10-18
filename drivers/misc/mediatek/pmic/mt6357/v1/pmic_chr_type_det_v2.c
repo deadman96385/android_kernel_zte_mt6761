@@ -392,11 +392,13 @@ void chrdet_int_handler(void)
 
 		if (boot_mode == KERNEL_POWER_OFF_CHARGING_BOOT
 		    || boot_mode == LOW_POWER_OFF_CHARGING_BOOT) {
+#ifndef ZTE_FEATURE_PV_AR
 			pr_info("[chrdet_int_handler] Unplug Charger/USB\n");
 #ifndef CONFIG_TCPC_CLASS
 			orderly_poweroff(true);
 #else
 			return;
+#endif
 #endif
 		}
 	}

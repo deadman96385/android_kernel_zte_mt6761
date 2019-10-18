@@ -678,10 +678,13 @@ void mt_usb_connect(void)
 
 void mt_usb_disconnect(void)
 {
-#ifndef CONFIG_TCPC_CLASS
+	/*for LPM test*/
+/*#ifndef CONFIG_TCPC_CLASS */
 	DBG(0, "[MUSB] USB disconnect\n");
+	/*for LPM test*/
+	cable_mode = CABLE_MODE_NORMAL;
 	issue_connection_work(CONNECTION_OPS_DISC);
-#endif
+/*#endif */
 }
 
 void mt_usb_dev_disconnect(void)

@@ -166,6 +166,8 @@
 #define OV13850_SENSOR_ID                       0xD850
 #define OV13855_SENSOR_ID                       0xD855
 #define OV16885_SENSOR_ID                       0x16885
+#define ZTE_OV16885_062_A7S_SENSOR_ID           0x16885 
+#define OV16885_Z6201V_062_SENSOR_ID            0x16885
 #define OV13855MAIN2_SENSOR_ID                  0xD856
 #define OV12830_SENSOR_ID                       0xC830
 #define OV9760MIPI_SENSOR_ID                    0x9760
@@ -242,7 +244,14 @@
 #define S5K8AAYX_SENSOR_ID                      0x08aa
 #define S5K5E8YX_SENSOR_ID                      0x5e80
 #define S5K5E8YXREAR2_SENSOR_ID                 0x5e81
+#define S5K3L6_SENSOR_ID                          0x30C6
+#define S5K3L6_Z6100T_064_SENSOR_ID                          0x30C6
+#define S5K3L6_Z6101O_064_SENSOR_ID                          0x30C6
+
+
 /*HI*/
+#define HI846_SENSOR_ID                         0x0846
+#define ZTE_HI846_134_A7S_SENSOR_ID             0x0846
 #define HI841_SENSOR_ID                         0x0841
 #define HI707_SENSOR_ID                         0x00b8
 #define HI704_SENSOR_ID                         0x0096
@@ -294,10 +303,21 @@
 #define GC0310_SENSOR_ID                        0xa310
 #define GC0313MIPI_YUV_SENSOR_ID                0xD0
 #define GC0312_SENSOR_ID                        0xb310
+#define GC5025_SENSOR_ID                        0x5025
+#define ZTE_GC5025_094_A7S_SENSOR_ID            0x5025 
+#define GC5025_Z6201V_094_SENSOR_ID             0x5025
+#define GC5025_Z6100T_094_SENSOR_ID             0x5025
+#define GC5025_Z6101O_094_SENSOR_ID             0x5025
+#define GC8034_SENSOR_ID                        0x8044
+
 /*SP*/
 #define SP0A19_YUV_SENSOR_ID                    0xA6
 #define SP2518_YUV_SENSOR_ID                    0x53
 #define SP2509_SENSOR_ID                        0x2509
+#define ZTE_SP2509_094_A7S_SENSOR_ID            0x2509
+#define SP2609_SENSOR_ID                        0x2608
+#define SP5508_SENSOR_ID                        0x5508
+#define SP5508_Z6201V_094_SENSOR_ID             0x5508
 /*A*/
 #define A5141MIPI_SENSOR_ID                     0x4800
 #define A5142MIPI_SENSOR_ID                     0x4800
@@ -329,6 +349,7 @@
 /*Others*/
 #define SHARP3D_SENSOR_ID                       0x003d
 #define T8EV5_SENSOR_ID                         0x1011
+#define ST55A_SENSOR_ID				0x55A0
 
 /* CAMERA DRIVER NAME */
 #define CAMERA_HW_DEVNAME                       "kd_camera_hw"
@@ -370,6 +391,9 @@
 #define SENSOR_DRVNAME_OV23850_MIPI_RAW         "ov23850_mipi_raw"
 #define SENSOR_DRVNAME_OV16880_MIPI_RAW         "ov16880_mipi_raw"
 #define SENSOR_DRVNAME_OV16885_MIPI_RAW         "ov16885_mipi_raw"
+#define SENSOR_DRVNAME_ZTE_OV16885_062_A7S      "zte_ov16885_062_A7S"
+#define SENSOR_DRVNAME_OV16885_Z6201V_062_MIPI_RAW  "ov16885_z6201v_062_mipi_raw"
+#define SENSOR_DRVNAME_OV16885_Z6201V_062_MIPI_RAW_B  "b_ov16885_z6201v_062_mipi_raw"
 #define SENSOR_DRVNAME_OV16825_MIPI_RAW         "ov16825_mipi_raw"
 #define SENSOR_DRVNAME_OV13855_MIPI_RAW         "ov13855_mipi_raw"
 #define SENSOR_DRVNAME_OV13870_MIPI_RAW         "ov13870_mipi_raw"
@@ -446,6 +470,8 @@
 #define SENSOR_DRVNAME_S5K5E8YX_MIPI_RAW        "s5k5e8yx_mipi_raw"
 #define SENSOR_DRVNAME_S5K5E8YXREAR2_MIPI_RAW   "s5k5e8yxrear2_mipi_raw"
 /*HI*/
+#define SENSOR_DRVNAME_ZTE_HI846_134_A7S         "zte_hi846_134_A7S"
+#define SENSOR_DRVNAME_HI846_MIPI_RAW_Z5155T_132 "hi846_mipi_raw_z5155t_132"
 #define SENSOR_DRVNAME_HI841_MIPI_RAW           "hi841_mipi_raw"
 #define SENSOR_DRVNAME_HI707_YUV                "hi707_yuv"
 #define SENSOR_DRVNAME_HI704_YUV                "hi704_yuv"
@@ -483,10 +509,15 @@
 #define SENSOR_DRVNAME_GC0310_YUV               "gc0310_yuv"
 #define SENSOR_DRVNAME_GC0312_YUV               "gc0312_yuv"
 #define SENSOR_DRVNAME_GC0313MIPI_YUV           "gc0313_mipi_yuv"
+#define SENSOR_DRVNAME_GC8034_MIPI_RAW_Z5155T_132      "gc8034_mipi_raw_z5155t_132"
 /*SP*/
 #define SENSOR_DRVNAME_SP0A19_YUV               "sp0a19_yuv"
 #define SENSOR_DRVNAME_SP2518_YUV               "sp2518_yuv"
 #define SENSOR_DRVNAME_SP2509_MIPI_RAW          "sp2509_mipi_raw"
+#define SENSOR_DRVNAME_ZTE_SP2509_094_A7S       "zte_sp2509_094_A7S"
+#define SENSOR_DRVNAME_SP5508_MIPI_RAW_Z5155T_093       "sp5508_mipi_raw_z5155t_093"
+#define SENSOR_DRVNAME_SP5508_Z6201V_094_MIPI_RAW  "sp5508_z6201v_094_mipi_raw"
+#define SENSOR_DRVNAME_SP5508_Z6201V_094_MIPI_RAW_B  "b_sp5508_z6201v_094_mipi_raw"
 /*A*/
 #define SENSOR_DRVNAME_A5141_MIPI_RAW           "a5141_mipi_raw"
 #define SENSOR_DRVNAME_A5142_MIPI_RAW           "a5142_mipi_raw"
@@ -511,6 +542,25 @@
 #define SENSOR_DRVNAME_IMX135_MIPI_RAW_8MP      "imx135_mipi_raw_8mp"
 #define SENSOR_DRVNAME_OV13870_MIPI_RAW_5MP     "ov13870_mipi_raw_5mp"
 #define SENSOR_DRVNAME_OV8856_MIPI_RAW_5MP      "ov8856_mipi_raw_5mp"
+
+#define SENSOR_DRVNAME_GC5025_MIPI_RAW      "gc5025_mipi_raw"
+#define SENSOR_DRVNAME_ZTE_GC5025_094_A7S      "zte_gc5025_094_A7S"
+#define SENSOR_DRVNAME_GC5025_Z6201V_094_MIPI_RAW  "gc5025_z6201v_094_mipi_raw"
+#define SENSOR_DRVNAME_GC5025_Z6201V_094_MIPI_RAW_B  "b_gc5025_z6201v_094_mipi_raw"
+#define SENSOR_DRVNAME_GC5025_MIPI_RAW_Z5155T_093      "gc5025_mipi_raw_z5155t_093"
+#define SENSOR_DRVNAME_ST55A_MIPI_RAW          "st55a_mipi_raw"
+#define SENSOR_DRVNAME_SP2609_MIPI_RAW          "sp2609_mipi_raw"
+
+#define SENSOR_DRVNAME_S5K3L6_MIPI_RAW_Z620DL_064           "s5k3l6_mipi_raw_z620dl_064"
+#define SENSOR_DRVNAME_GC5025_MIPI_RAW_Z620DL_094      "gc5025_mipi_raw_z620dl_094"
+#define SENSOR_DRVNAME_SP5508_MIPI_RAW_Z620DL_094       "sp5508_mipi_raw_z620dl_094"
+
+#define SENSOR_DRVNAME_S5K3L6_Z6100T_064_MIPI_RAW           "s5k3l6_z6100t_064_mipi_raw"
+#define SENSOR_DRVNAME_GC5025_Z6100T_094_MIPI_RAW      "gc5025_z6100t_094_mipi_raw"
+#define SENSOR_DRVNAME_SP5508_MIPI_RAW_Z6100T_094       "sp5508_mipi_raw_z6100t_094"
+
+#define SENSOR_DRVNAME_S5K3L6_Z6101O_064_MIPI_RAW           "s5k3l6_z6101o_064_mipi_raw"
+#define SENSOR_DRVNAME_GC5025_Z6101O_094_MIPI_RAW      "gc5025_z6101o_094_mipi_raw"
 
 #define mDELAY(ms)     mdelay(ms)
 #define uDELAY(us)       udelay(us)

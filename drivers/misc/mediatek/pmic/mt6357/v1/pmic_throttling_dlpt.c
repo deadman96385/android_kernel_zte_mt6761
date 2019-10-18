@@ -442,7 +442,7 @@ static DEFINE_MUTEX(bat_percent_notify_mutex);
 int g_battery_percent_level;
 int g_battery_percent_stop;
 
-#define BAT_PERCENT_LINIT 15
+#define BAT_PERCENT_LINIT 0
 
 struct battery_percent_callback_table {
 	void (*bpcb)(enum BATTERY_PERCENT_LEVEL_TAG);
@@ -1820,7 +1820,7 @@ int pmic_throttling_dlpt_init(void)
 	char *path;
 
 #if (CONFIG_MTK_GAUGE_VERSION == 30)
-	path = "/bat_gm30";
+	path = "/battery";
 	np = of_find_node_by_path(path);
 	if (of_property_read_u32(np, "CAR_TUNE_VALUE", &val) == 0) {
 		fg_cust_data.car_tune_value = (int)val*10;

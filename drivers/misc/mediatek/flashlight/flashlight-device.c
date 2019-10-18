@@ -18,6 +18,31 @@ const struct flashlight_device_id flashlight_id[] = {
 	/* {TYPE, CT, PART, "NAME", CHANNEL, DECOUPLE} */
 	{0, 0, 0, "flashlights-rt4505", 0, 0},
 };
+#elif defined(mt6765)
+const struct flashlight_device_id flashlight_id[] = {
+	/* {TYPE, CT, PART, "NAME", CHANNEL, DECOUPLE} */
+	{0, 0, 0, "flashlights-aw3648", 0, 0},
+};
+#elif defined(mt6761)
+	#if defined(CONFIG_MTK_FLASHLIGHT_AW3648) || defined(CONFIG_MTK_FLASHLIGHT_DUMMY_GPIO)
+		const struct flashlight_device_id flashlight_id[] = {
+		/* {TYPE, CT, PART, "NAME", CHANNEL, DECOUPLE} */
+		{0, 0, 0, "flashlights-aw3648", 0, 0},
+		{1, 0, 0, "flashlights-dummy-gpio", 0, 0},
+		};
+	#else
+	#if 0
+		const struct flashlight_device_id flashlight_id[] = {
+		/* {TYPE, CT, PART, "NAME", CHANNEL, DECOUPLE} */
+		{0, 0, 0, "flashlights-mt6370", 0, 0},
+		{0, 1, 0, "flashlights-mt6370", 1, 0},
+		};
+	#endif
+		const struct flashlight_device_id flashlight_id[] = {
+		/* {TYPE, CT, PART, "NAME", CHANNEL, DECOUPLE} */
+		{0, 0, 0, "flashlights-mt6370", 0, 1},
+		};
+	#endif
 #elif defined(mt6757)
 	#if defined(evb6757p_dm_64) || defined(k57pv1_dm_64) || \
 	defined(k57pv1_64_baymo) || defined(k57pv1_dm_64_bif) || \

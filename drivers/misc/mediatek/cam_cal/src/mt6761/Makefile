@@ -32,6 +32,7 @@ obj-y += ../common/$(COMMON_VERSION)/eeprom_i2c_common_driver.o
 # Platform code
 obj-y += eeprom_i2c_custom_driver.o
 
+ccflags-$(CONFIG_CAM_CAL_INSENSOR_AF_OTP)  += -DCAM_CAL_INSENSOR_AF_OTP
 
 define INC_CUSTOM_SRC
 ifeq ($(wildcard $(CAM_CAL_PLATFORM_SRC_PATH)/camera_project/$(ARCH_MTK_PROJECT)/$(1).c),)

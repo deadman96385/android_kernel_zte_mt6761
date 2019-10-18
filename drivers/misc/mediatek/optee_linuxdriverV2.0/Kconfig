@@ -1,0 +1,17 @@
+# Generic Trusted Execution Environment Configuration
+config ZTE_TEE_SUPPORT
+	bool "Trusted Execution Environment support"
+	default n
+	help
+	  This implements a generic interface towards a Trusted Execution
+	  Environment (TEE).
+
+#if ZTE_TEE_SUPPORT
+
+#menu "TEE drivers"
+
+#source "drivers/misc/mediatek/optee_linuxdriverV2.0/optee/Kconfig"
+
+#endmenu
+
+#endif

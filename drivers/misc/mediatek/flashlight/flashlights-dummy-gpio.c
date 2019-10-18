@@ -48,14 +48,14 @@ static struct work_struct dummy_work;
 
 /* define pinctrl */
 /* TODO: define pinctrl */
-#define DUMMY_PINCTRL_PIN_XXX 0
+#define DUMMY_PINCTRL_PIN_HXM 0
 #define DUMMY_PINCTRL_PINSTATE_LOW 0
 #define DUMMY_PINCTRL_PINSTATE_HIGH 1
-#define DUMMY_PINCTRL_STATE_XXX_HIGH "xxx_high"
-#define DUMMY_PINCTRL_STATE_XXX_LOW  "xxx_low"
+#define DUMMY_PINCTRL_STATE_HXM_HIGH "hxm_high"
+#define DUMMY_PINCTRL_STATE_HXM_LOW  "hxm_low"
 static struct pinctrl *dummy_pinctrl;
-static struct pinctrl_state *dummy_xxx_high;
-static struct pinctrl_state *dummy_xxx_low;
+static struct pinctrl_state *dummy_hxm_high;
+static struct pinctrl_state *dummy_hxm_low;
 
 /* define usage count */
 static int use_count;
@@ -83,17 +83,17 @@ static int dummy_pinctrl_init(struct platform_device *pdev)
 	}
 
 	/* TODO: Flashlight XXX pin initialization */
-	dummy_xxx_high = pinctrl_lookup_state(
-			dummy_pinctrl, DUMMY_PINCTRL_STATE_XXX_HIGH);
-	if (IS_ERR(dummy_xxx_high)) {
-		pr_err("Failed to init (%s)\n", DUMMY_PINCTRL_STATE_XXX_HIGH);
-		ret = PTR_ERR(dummy_xxx_high);
+	dummy_hxm_high = pinctrl_lookup_state(
+			dummy_pinctrl, DUMMY_PINCTRL_STATE_HXM_HIGH);
+	if (IS_ERR(dummy_hxm_high)) {
+		pr_err("Failed to init (%s)\n", DUMMY_PINCTRL_STATE_HXM_HIGH);
+		ret = PTR_ERR(dummy_hxm_high);
 	}
-	dummy_xxx_low = pinctrl_lookup_state(
-			dummy_pinctrl, DUMMY_PINCTRL_STATE_XXX_LOW);
-	if (IS_ERR(dummy_xxx_low)) {
-		pr_err("Failed to init (%s)\n", DUMMY_PINCTRL_STATE_XXX_LOW);
-		ret = PTR_ERR(dummy_xxx_low);
+	dummy_hxm_low = pinctrl_lookup_state(
+			dummy_pinctrl, DUMMY_PINCTRL_STATE_HXM_LOW);
+	if (IS_ERR(dummy_hxm_low)) {
+		pr_err("Failed to init (%s)\n", DUMMY_PINCTRL_STATE_HXM_LOW);
+		ret = PTR_ERR(dummy_hxm_low);
 	}
 
 	return ret;
@@ -109,13 +109,13 @@ static int dummy_pinctrl_set(int pin, int state)
 	}
 
 	switch (pin) {
-	case DUMMY_PINCTRL_PIN_XXX:
+	case DUMMY_PINCTRL_PIN_HXM:
 		if (state == DUMMY_PINCTRL_PINSTATE_LOW &&
-				!IS_ERR(dummy_xxx_low))
-			pinctrl_select_state(dummy_pinctrl, dummy_xxx_low);
+				!IS_ERR(dummy_hxm_low))
+			pinctrl_select_state(dummy_pinctrl, dummy_hxm_low);
 		else if (state == DUMMY_PINCTRL_PINSTATE_HIGH &&
-				!IS_ERR(dummy_xxx_high))
-			pinctrl_select_state(dummy_pinctrl, dummy_xxx_high);
+				!IS_ERR(dummy_hxm_high))
+			pinctrl_select_state(dummy_pinctrl, dummy_hxm_high);
 		else
 			pr_err("set err, pin(%d) state(%d)\n", pin, state);
 		break;
@@ -135,7 +135,7 @@ static int dummy_pinctrl_set(int pin, int state)
 /* flashlight enable function */
 static int dummy_enable(void)
 {
-	int pin = 0, state = 0;
+	int pin = 0, state = 1;
 
 	/* TODO: wrap enable function */
 
@@ -155,7 +155,7 @@ static int dummy_disable(void)
 /* set flashlight level */
 static int dummy_set_level(int level)
 {
-	int pin = 0, state = 0;
+	int pin = 0, state = 1;
 
 	/* TODO: wrap set level function */
 

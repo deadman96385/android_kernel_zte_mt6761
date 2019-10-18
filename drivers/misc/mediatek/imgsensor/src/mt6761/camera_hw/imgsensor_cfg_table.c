@@ -30,20 +30,137 @@ enum IMGSENSOR_RETURN
 	imgsensor_hw_mclk_open
 };
 
-struct IMGSENSOR_HW_CFG imgsensor_custom_config[] = {
+#if defined(OV16885_Z6201V_062_MIPI_RAW) || defined(GC5025_Z6201V_094_MIPI_RAW)
+struct IMGSENSOR_HW_CFG imgsensor_custom_config_b[] = {
 	{
 		IMGSENSOR_SENSOR_IDX_MAIN,
 		IMGSENSOR_I2C_DEV_0,
 		{
 			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
-			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_AVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_AVDD},/*IMGSENSOR_HW_ID_REGULATOR*/
 			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
-			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_DVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DVDD},/*IMGSENSOR_HW_ID_GPIO*/
 			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
 			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
 			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
 		},
 	},
+	{
+		IMGSENSOR_SENSOR_IDX_SUB,
+		IMGSENSOR_I2C_DEV_1,
+		{
+			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_AVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DVDD},/*IMGSENSOR_HW_ID_GPIO*/
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
+			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
+		},
+	},
+	{
+		IMGSENSOR_SENSOR_IDX_MAIN2,
+		IMGSENSOR_I2C_DEV_2,
+		{
+			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_AVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DVDD},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
+			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
+		},
+	},
+	{
+		IMGSENSOR_SENSOR_IDX_SUB2,
+		IMGSENSOR_I2C_DEV_1,
+		{
+			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_AVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DVDD},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
+			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
+		},
+	},
+	{
+		IMGSENSOR_SENSOR_IDX_MAIN3,
+		IMGSENSOR_I2C_DEV_2,
+		{
+			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_AVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DVDD},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
+			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
+		},
+	},
+	{IMGSENSOR_SENSOR_IDX_NONE}
+	};
+#endif
+
+struct IMGSENSOR_HW_CFG imgsensor_custom_config[] = {
+#if defined(OV16885_Z6201V_062_MIPI_RAW) || defined(S5K3L6_MIPI_RAW_Z620DL_064) || \
+	defined(S5K3L6_Z6101O_064_MIPI_RAW) || defined(S5K3L6_Z6100T_064_MIPI_RAW)
+	{
+		IMGSENSOR_SENSOR_IDX_MAIN,
+		IMGSENSOR_I2C_DEV_0,
+		{
+			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_AVDD},/*IMGSENSOR_HW_ID_REGULATOR*/
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DVDD},/*IMGSENSOR_HW_ID_GPIO*/
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
+			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
+		},
+	},
+#else
+	{
+		IMGSENSOR_SENSOR_IDX_MAIN,
+		IMGSENSOR_I2C_DEV_0,
+		{
+			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_AVDD},/*IMGSENSOR_HW_ID_REGULATOR*/
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DVDD},/*IMGSENSOR_HW_ID_GPIO*/
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
+			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
+		},
+	},
+#endif
+#if defined(GC5025_MIPI_RAW_Z5155T_093) || defined(SP5508_MIPI_RAW_Z5155T_093)
+	{
+		IMGSENSOR_SENSOR_IDX_SUB,
+		IMGSENSOR_I2C_DEV_1,
+		{
+			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_AVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DVDD},/*IMGSENSOR_HW_ID_GPIO*/
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
+			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
+		},
+	},
+#elif defined(GC5025_Z6201V_094_MIPI_RAW) || defined(SP5508_Z6201V_094_MIPI_RAW)
+	{
+		IMGSENSOR_SENSOR_IDX_SUB,
+		IMGSENSOR_I2C_DEV_1,
+		{
+			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_AVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DVDD},/*IMGSENSOR_HW_ID_GPIO*/
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
+			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
+		},
+	},
+#elif defined(GC5025_MIPI_RAW_Z620DL_094) || defined(SP5508_MIPI_RAW_Z620DL_094)
 	{
 		IMGSENSOR_SENSOR_IDX_SUB,
 		IMGSENSOR_I2C_DEV_1,
@@ -57,6 +174,35 @@ struct IMGSENSOR_HW_CFG imgsensor_custom_config[] = {
 			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
 		},
 	},
+#elif defined(GC5025_Z6100T_094_MIPI_RAW) || defined(GC5025_Z6101O_094_MIPI_RAW) || defined(SP5508_MIPI_RAW_Z6100T_094)
+	{
+		IMGSENSOR_SENSOR_IDX_SUB,
+		IMGSENSOR_I2C_DEV_1,
+		{
+			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_AVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_DVDD},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
+			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
+		},
+	},
+#else
+	{
+		IMGSENSOR_SENSOR_IDX_SUB,
+		IMGSENSOR_I2C_DEV_1,
+		{
+			{IMGSENSOR_HW_ID_MCLK, IMGSENSOR_HW_PIN_MCLK},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_AVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DOVDD},
+			{IMGSENSOR_HW_ID_REGULATOR, IMGSENSOR_HW_PIN_DVDD},/*IMGSENSOR_HW_ID_GPIO*/
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_PDN},
+			{IMGSENSOR_HW_ID_GPIO, IMGSENSOR_HW_PIN_RST},
+			{IMGSENSOR_HW_ID_NONE, IMGSENSOR_HW_PIN_NONE},
+		},
+	},
+#endif
 	{
 		IMGSENSOR_SENSOR_IDX_MAIN2,
 		IMGSENSOR_I2C_DEV_2,
@@ -147,9 +293,297 @@ struct IMGSENSOR_HW_POWER_SEQ platform_power_sequence[] = {
 
 /* Legacy design */
 struct IMGSENSOR_HW_POWER_SEQ sensor_power_sequence[] = {
-#if defined(IMX499_MIPI_RAW)
+#if defined(S5K3L6_MIPI_RAW_Z620DL_064)
 	{
-		SENSOR_DRVNAME_IMX499_MIPI_RAW,
+		SENSOR_DRVNAME_S5K3L6_MIPI_RAW_Z620DL_064,
+		{
+			{RST, Vol_Low, 1},
+			{DVDD, Vol_1100, 1},
+			{AVDD, Vol_2800, 1},
+			{DOVDD, Vol_1800, 1, },
+			{AFVDD, Vol_2800, 1},
+			{RST, Vol_High, 2},
+			{SensorMCLK, Vol_High, 0},
+		},
+	},
+#endif
+#if defined(GC5025_MIPI_RAW_Z620DL_094)
+	{SENSOR_DRVNAME_GC5025_MIPI_RAW_Z620DL_094,
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{DVDD,       Vol_1200, 2},
+			{AVDD,       Vol_2800, 2},
+			{SensorMCLK, Vol_High, 1},
+			{PDN,        Vol_High, 0, Vol_None, 0},
+			{RST,        Vol_High, 1, Vol_None, 0},
+			{RST,        Vol_None, 0, Vol_Low, 1},
+			{PDN,        Vol_None, 0, Vol_Low, 0},
+		},
+	},
+#endif
+#if defined(SP5508_MIPI_RAW_Z620DL_094)
+	{SENSOR_DRVNAME_SP5508_MIPI_RAW_Z620DL_094,
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{AVDD,       Vol_2800, 1},
+			{DVDD,       Vol_None, 2},/*avdd,dvdd use the same GPIO*/
+			{SensorMCLK, Vol_High, 0},
+			{PDN,        Vol_High, 3},
+			{RST,        Vol_High, 5},
+		},
+	},
+#endif
+
+#if defined(S5K3L6_Z6100T_064_MIPI_RAW)
+	{
+		SENSOR_DRVNAME_S5K3L6_Z6100T_064_MIPI_RAW,
+		{
+			{RST, Vol_Low, 1},
+			{DVDD, Vol_1100, 1},
+			{AVDD, Vol_2800, 1},
+			{DOVDD, Vol_1800, 1},
+			/* {AFVDD, Vol_2800, 1}, */
+			{RST, Vol_High, 2},
+			{SensorMCLK, Vol_High, 0},
+		},
+	},
+#endif
+#if defined(GC5025_Z6100T_094_MIPI_RAW)
+	{SENSOR_DRVNAME_GC5025_Z6100T_094_MIPI_RAW,
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{DVDD,       Vol_1200, 2},
+			{AVDD,       Vol_2800, 2},
+			{SensorMCLK, Vol_High, 1},
+			{PDN,        Vol_High, 0, Vol_None, 0},
+			{RST,        Vol_High, 1, Vol_None, 0},
+			{RST,        Vol_None, 0, Vol_Low, 1},
+			{PDN,        Vol_None, 0, Vol_Low, 0},
+		},
+	},
+#endif
+#if defined(SP5508_MIPI_RAW_Z6100T_094)
+	{SENSOR_DRVNAME_SP5508_MIPI_RAW_Z6100T_094,
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{AVDD,       Vol_2800, 1},
+			{DVDD,       Vol_None, 2},/*avdd,dvdd use the same GPIO*/
+			{SensorMCLK, Vol_High, 0},
+			{PDN,        Vol_High, 3},
+			{RST,        Vol_High, 5},
+		},
+	},
+#endif
+
+#if defined(S5K3L6_Z6101O_064_MIPI_RAW)
+	{
+		SENSOR_DRVNAME_S5K3L6_Z6101O_064_MIPI_RAW,
+		{
+			{RST, Vol_Low, 1},
+			{DVDD, Vol_1100, 1},
+			{AVDD, Vol_2800, 1},
+			{DOVDD, Vol_1800, 1},
+			/* {AFVDD, Vol_2800, 1}, */
+			{RST, Vol_High, 2},
+			{SensorMCLK, Vol_High, 0},
+		},
+	},
+#endif
+#if defined(GC5025_Z6101O_094_MIPI_RAW)
+	{SENSOR_DRVNAME_GC5025_Z6101O_094_MIPI_RAW,
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{DVDD,       Vol_1200, 2},
+			{AVDD,       Vol_2800, 2},
+			{SensorMCLK, Vol_High, 1},
+			{PDN,        Vol_High, 0, Vol_None, 0},
+			{RST,        Vol_High, 1, Vol_None, 0},
+			{RST,        Vol_None, 0, Vol_Low, 1},
+			{PDN,        Vol_None, 0, Vol_Low, 0},
+		},
+	},
+#endif
+
+
+#if defined(HI846_MIPI_RAW_Z5155T_132)
+	{
+		SENSOR_DRVNAME_HI846_MIPI_RAW_Z5155T_132,
+		{
+			{DOVDD, Vol_1800, 1},
+			{AVDD, Vol_2800, 1},
+			{DVDD, Vol_1200, 5},
+			{SensorMCLK, Vol_High, 1},
+			{AFVDD, Vol_2800, 1},
+			{PDN, Vol_Low, 0},
+			{PDN, Vol_High, 0},
+			{RST, Vol_Low, 10},
+			{RST, Vol_High, 1},
+		},
+	},
+#endif
+#if defined(GC8034_MIPI_RAW_Z5155T_132)
+	{
+		SENSOR_DRVNAME_GC8034_MIPI_RAW_Z5155T_132,
+		{
+			{DOVDD, Vol_1800, 1},
+			{DVDD, Vol_1200, 5},
+			{AVDD, Vol_2800, 1},
+			{SensorMCLK, Vol_High, 1},
+			{AFVDD, Vol_2800, 1},
+			{PDN, Vol_Low, 0},
+			{PDN, Vol_High, 0},
+			{RST, Vol_Low, 10},
+			{RST, Vol_High, 1},
+		},
+	},
+#endif
+
+#if defined(GC5025_MIPI_RAW)
+	{SENSOR_DRVNAME_GC5025_MIPI_RAW,
+		{
+			{SensorMCLK, Vol_High, 0},
+			{PDN, Vol_Low, 0},
+			{RST, Vol_Low, 0},
+			{DOVDD, Vol_1800, 1},
+			{DVDD, Vol_1200, 1},
+			{AVDD, Vol_2800, 1},
+			{PDN, Vol_High, 1},
+			{RST, Vol_High, 1},
+		},
+	},
+#endif
+#if defined(GC5025_MIPI_RAW_Z5155T_093)
+	{SENSOR_DRVNAME_GC5025_MIPI_RAW_Z5155T_093,
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{DVDD,       Vol_1200, 2},
+			{AVDD,       Vol_2800, 2},
+			{SensorMCLK, Vol_High, 1},
+			{PDN,        Vol_High, 0, Vol_None, 0},
+			{RST,        Vol_High, 1, Vol_None, 0},
+			{RST,        Vol_None, 0, Vol_Low, 1},
+			{PDN,        Vol_None, 0, Vol_Low, 0},
+		},
+	},
+#endif
+#if defined(GC5025_Z6201V_094_MIPI_RAW)
+	{
+		SENSOR_DRVNAME_GC5025_Z6201V_094_MIPI_RAW,  /*AVDD is enabled by gpio */
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{DVDD,       Vol_1200, 2},   /*OK*/
+			{AVDD,       Vol_High, 2},   /*OK*/
+			{SensorMCLK, Vol_High, 1},
+			{PDN,        Vol_High, 0, Vol_None, 0},
+			{RST,        Vol_High, 1, Vol_None, 0},
+			{RST,        Vol_None, 0, Vol_Low, 1},
+			{PDN,        Vol_None, 0, Vol_Low, 0},
+		},
+	},
+	{
+		SENSOR_DRVNAME_GC5025_Z6201V_094_MIPI_RAW_B,  /*AVDD is enabled by gpio */
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{DVDD,       Vol_1200, 2},   /*OK*/
+			{AVDD,       Vol_2800, 2},   /*OK*/
+			{SensorMCLK, Vol_High, 1},
+			{PDN,        Vol_High, 0, Vol_None, 0},
+			{RST,        Vol_High, 1, Vol_None, 0},
+			{RST,        Vol_None, 0, Vol_Low, 1},
+			{PDN,        Vol_None, 0, Vol_Low, 0},
+		},
+	},
+#endif
+#if defined(ST55A_MIPI_RAW)
+	{SENSOR_DRVNAME_ST55A_MIPI_RAW,
+		{
+			{SensorMCLK, Vol_High, 0},
+			{PDN, Vol_Low, 0},
+			{RST, Vol_Low, 0},
+			{DVDD, Vol_1200, 1},
+			{AVDD, Vol_2800, 1},
+			{DOVDD, Vol_1800, 1},
+			{PDN, Vol_High, 0},
+			{RST, Vol_High, 0},
+		},
+	},
+#endif
+
+#if defined(SP2609_MIPI_RAW)
+	{SENSOR_DRVNAME_SP2609_MIPI_RAW,
+		{
+			{SensorMCLK, Vol_High, 0},
+			{PDN, Vol_Low, 0},
+			{RST, Vol_Low, 0},
+			{DOVDD, Vol_1800, 1},
+			{DVDD, Vol_1200, 1},
+			{AVDD, Vol_2800, 1},
+			{PDN, Vol_High, 5, Vol_High, 1},
+			{PDN, Vol_Low, 1},
+			{RST, Vol_High, 1},
+		},
+	},
+#endif
+#if defined(SP5508_Z6201V_094_MIPI_RAW)
+	{
+		SENSOR_DRVNAME_SP5508_Z6201V_094_MIPI_RAW,  /*AVDD is enabled by gpio */
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{AVDD,       Vol_High, 1},
+			{DVDD,       Vol_1200, 2},   /*OK*/
+			{SensorMCLK, Vol_High, 0},
+			{PDN,        Vol_High, 3},
+			{RST,        Vol_High, 5},
+		},
+	},
+	{
+		SENSOR_DRVNAME_SP5508_Z6201V_094_MIPI_RAW_B,  /*AVDD is enabled by gpio */
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{AVDD,       Vol_2800, 1},
+			{DVDD,       Vol_1200, 2},   /*OK*/
+			{SensorMCLK, Vol_High, 0},
+			{PDN,        Vol_High, 3},
+			{RST,        Vol_High, 5},
+		},
+	},
+#endif
+#if defined(SP5508_MIPI_RAW_Z5155T_093)
+	{SENSOR_DRVNAME_SP5508_MIPI_RAW_Z5155T_093,
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 1},
+			{AVDD,       Vol_2800, 1},
+			{DVDD,       Vol_1200, 2},
+			{SensorMCLK, Vol_High, 0},
+			{PDN,        Vol_High, 3},
+			{RST,        Vol_High, 5},
+		},
+	},
+#endif
+#if defined(IMX499_MIPI_RAW)
+	{SENSOR_DRVNAME_IMX499_MIPI_RAW,
 		{
 			{PDN, Vol_Low, 0},
 			{RST, Vol_Low, 0},
@@ -513,6 +947,34 @@ struct IMGSENSOR_HW_POWER_SEQ sensor_power_sequence[] = {
 			{AFVDD, Vol_2800, 1},
 			{PDN, Vol_High, 1},
 			{RST, Vol_High, 2}
+		},
+	},
+#endif
+#if defined(OV16885_Z6201V_062_MIPI_RAW)
+	{
+		SENSOR_DRVNAME_OV16885_Z6201V_062_MIPI_RAW,
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 0},
+			{AVDD,       Vol_High, 0},   /*OK*/
+			{DVDD,       Vol_1200, 0},   /*OK*/
+			{SensorMCLK, Vol_High, 0},
+			{PDN,        Vol_High, 2},
+			{RST,        Vol_High, 2},
+		},
+	},
+	{
+		SENSOR_DRVNAME_OV16885_Z6201V_062_MIPI_RAW_B,
+		{
+			{PDN,        Vol_Low,  0},
+			{RST,        Vol_Low,  0},
+			{DOVDD,      Vol_1800, 0},
+			{AVDD,       Vol_2800, 0},   /*OK*/
+			{DVDD,       Vol_1200, 0},   /*OK*/
+			{SensorMCLK, Vol_High, 0},
+			{PDN,        Vol_High, 2},
+			{RST,        Vol_High, 2},
 		},
 	},
 #endif

@@ -27,7 +27,7 @@
 #include <linux/debugfs.h>
 
 /* extern unsigned long ccci_get_md_boot_count(int md_id); */
-
+#define FEATURE_THERMAL_CLEAR
 #if !defined(FEATURE_MUTT_INTERFACE_VER)
 
 #define MUTT_ACTIVED_OFFSET		8
@@ -119,6 +119,14 @@ enum tmc_pa_ctrl_enum {
 static unsigned int tmd_pid;
 static unsigned int tmd_input_pid;
 static struct task_struct *ptmd_task;
+#endif
+
+#ifdef FEATURE_THERMAL_CLEAR
+/* signal */
+static unsigned int tmc_pid = 0;
+static unsigned int tmc_input_pid = 0;
+static struct task_struct *ptmc_task = NULL;
+static unsigned long tmc_state[3] = {0};
 #endif
 
 #if FEATURE_MUTT_V2
@@ -348,6 +356,104 @@ static const struct file_operations clmutt_tmd_pid_fops = {
 	.read = seq_read,
 	.llseek = seq_lseek,
 	.write = clmutt_tmd_pid_write,
+	.release = single_release,
+};
+#endif
+
+#ifdef FEATURE_THERMAL_CLEAR
+enum {
+	TMC_level_1 = 5,
+	TMC_level_2 = 7,
+	TMC_level_3 = 9,
+};
+/*
+ * use "si_code" for Action identify
+ * for tmc_pid (/system/bin/thermald)
+ */
+
+static int clmutt_send_tmc_signal(int level)
+{
+	int ret = 0;
+	static int clear_state = TMC_level_1;
+
+	if (clear_state == level)
+		return ret;
+
+	if (tmc_input_pid == 0) {
+		mtk_cooler_mutt_dprintk("%s pid is empty\n", __func__);
+		ret = -1;
+	}
+
+	mtk_cooler_mutt_dprintk_always(" %s pid is %d, %d; MD_Alert: %d\n", __func__,
+							tmc_pid, tmc_input_pid, level);
+
+	if (ret == 0 && tmc_input_pid != tmc_pid) {
+		tmc_pid = tmc_input_pid;
+
+		if (ptmc_task != NULL)
+			put_task_struct(ptmc_task);
+		ptmc_task = get_pid_task(find_vpid(tmc_pid), PIDTYPE_PID);
+	}
+
+	if (ret == 0 && ptmc_task) {
+		siginfo_t info;
+
+		info.si_signo = SIGIO;
+		info.si_errno = 0;
+		info.si_code = level;
+		info.si_addr = NULL;
+		ret = send_sig_info(SIGIO, &info, ptmc_task);
+	}
+
+	if (ret != 0)
+		mtk_cooler_mutt_dprintk_always(" %s ret=%d\n", __func__, ret);
+	else {
+		clear_state = level;
+	}
+
+	return ret;
+}
+
+static ssize_t clmutt_tmc_pid_write(struct file *filp, const char __user *buf, size_t count,
+				    loff_t *data)
+{
+	int ret = 0;
+	char tmp[MAX_LEN] = { 0 };
+	int len = 0;
+
+	len = (count < (MAX_LEN - 1)) ? count : (MAX_LEN - 1);
+	/* write data to the buffer */
+	if (copy_from_user(tmp, buf, len))
+		return -EFAULT;
+
+	ret = kstrtouint(tmp, 10, &tmc_input_pid);
+	if (ret)
+		WARN_ON_ONCE(1);
+
+	mtk_cooler_mutt_dprintk("%s %s = %d\n", __func__, tmp, tmc_input_pid);
+
+	return len;
+}
+
+static int clmutt_tmc_pid_read(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%d\n", tmc_input_pid);
+	mtk_cooler_mutt_dprintk("%s %d\n", __func__, tmc_input_pid);
+
+	return 0;
+}
+
+static int clmutt_tmc_pid_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, clmutt_tmc_pid_read, PDE_DATA(inode));
+}
+
+static const struct file_operations clmutt_tmc_pid_fops = {
+	.owner = THIS_MODULE,
+	.open = clmutt_tmc_pid_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.write = clmutt_tmc_pid_write,
 	.release = single_release,
 };
 #endif
@@ -884,6 +990,23 @@ struct thermal_cooling_device *cdev, unsigned long state)
 	MTK_CL_MUTT_SET_CURR_STATE(state, *((unsigned long *)cdev->devdata));
 	mtk_cl_mutt_set_mutt_limit();
 
+#ifdef FEATURE_THERMAL_CLEAR
+	if (!strncmp(cdev->type, "mtk-cl-mutt00", sizeof("mtk-cl-mutt00") - 1) &&
+            state != tmc_state[0]) {
+		tmc_state[0] = state;
+		clmutt_send_tmc_signal(TMC_level_1 - state);
+	}
+	if (!strncmp(cdev->type, "mtk-cl-mutt01", sizeof("mtk-cl-mutt01") - 1) &&
+            state != tmc_state[1]) {
+		tmc_state[1] = state;
+		clmutt_send_tmc_signal(TMC_level_2 - state);
+	}
+	if (!strncmp(cdev->type, "mtk-cl-mutt02", sizeof("mtk-cl-mutt02") - 1) &&
+            state != tmc_state[2]) {
+		tmc_state[2] = state;
+		clmutt_send_tmc_signal(TMC_level_3 - state);
+	}
+#endif
 	return 0;
 }
 
@@ -1648,6 +1771,12 @@ static int __init mtk_cooler_mutt_init(void)
 #if defined(FEATURE_MUTT_INTERFACE_VER)
 			entry = proc_create("clmutt_tuning", 0664, dir_entry,
 							&clmutt_tuning_fops);
+			if (entry)
+				proc_set_user(entry, uid, gid);
+#endif
+#ifdef FEATURE_THERMAL_CLEAR
+			entry = proc_create("clmutt_tmc_pid", S_IRUGO | S_IWUSR | S_IWGRP,
+								dir_entry, &clmutt_tmc_pid_fops);
 			if (entry)
 				proc_set_user(entry, uid, gid);
 #endif

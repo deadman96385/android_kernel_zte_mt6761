@@ -28,6 +28,55 @@ enum LCM_DSI_MODE_CON lcm_dsi_mode;
 #define LCD_HW_ID_STATUS_ERROR  0x03
 
 struct LCM_DRIVER *lcm_driver_list[] = {
+#if defined(ZTE_CAREZHXM_JD9366D_HDP_5P45_LIANCHUANG_PANDA)
+	&zte_carezhxm_jd9366d_hdp_5p45_lianchuang_panda_lcm_drv,
+#endif
+#if defined(ZTE_CAREZHXM_ST7703_HDP_5P45_SKYWORTH_HSD)
+	&zte_carezhxm_st7703_hdp_5p45_skyworth_hsd_lcm_drv,
+#endif
+#if defined(ZTE_CAREZHXM_ILI9881C_HDP_5P45_SKYWORTH_HUAJIACAI)
+	&zte_carezhxm_ili9881c_hdp_5p45_skyworth_huajiacai_lcm_drv,
+#endif
+#if defined(ZTE_MONKEYXM_ICNL9911_720P_6P_SKYWORTH)
+	&zte_monkeyxm_icnl9911_720p_6p_skyworth_lcm_drv,
+#endif
+#if defined(ZTE_MONKEYXM_FT8006P_720P_6P_LCETRON)
+	&zte_monkeyxm_ft8006p_720p_6p_lcetron_lcm_drv,
+#endif
+#if defined(ZTE_MONKEYXM_ICNL9911_720P_6P_SKYWORTH_4LANE)
+	&zte_monkeyxm_icnl9911_720p_6p_skyworth_4lane_lcm_drv,
+#endif
+#if defined(ZTE_MONKEYXM_FT8006P_720P_6P_LEAD)
+	&zte_monkeyxm_ft8006p_720p_6p_lead_lcm_drv,
+#endif
+#if defined(ZTE_SCORPIO_ICNL9911_720P_6P_SKYWORTH)
+	&zte_scorpio_icnl9911_720p_6p_skyworth_lcm_drv,
+#endif
+#if defined(ZTE_SCORPIO_FT8006P_720P_6P_LCETRON)
+	&zte_scorpio_ft8006p_720p_6p_lcetron_lcm_drv,
+#endif
+#if defined(ZTE_SCORPIO_FT8006P_720P_6P_LEAD_HUAJIACAI)
+	&zte_scorpio_ft8006p_720p_6p_lead_huajiacai_lcm_drv,
+#endif
+#if defined(ZTE_SCORPIO_ICNL9911_720P_6P_SKYWORTH_4LANE)
+	&zte_scorpio_icnl9911_720p_6p_skyworth_4lane_lcm_drv,
+#endif
+#if defined(ST7701S_480P_DSI_VDO_HSD_EASYQUICK_6771)
+	&st7701s_480p_dsi_vdo_hsd_easyquick_6771_lcm_drv,
+#endif
+
+#if defined(ST7701S_480P_DSI_VDO_HSD_LCETRON_6771)
+	&st7701s_480p_dsi_vdo_hsd_lcetron_6771_lcm_drv,
+#endif
+
+#if defined(JD9161Z_480P_DSI_VDO_CTC_LEAD_6771)
+	&jd9161Z_480p_dsi_vdo_ctc_lead_6771_lcm_drv,
+#endif
+#if defined(OTM8019A_480P_DSI_VDO_CTC_LCETRON_6771)
+	&otm8019a_480p_dsi_vdo_ctc_lcetron_6771_lcm_drv,
+#endif
+
+
 #if defined(OTM1284A_HD720_DSI_VDO_TM)
 	&otm1284a_hd720_dsi_vdo_tm_lcm_drv,
 #endif

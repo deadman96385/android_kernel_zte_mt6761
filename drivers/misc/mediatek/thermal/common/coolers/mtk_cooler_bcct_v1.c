@@ -398,7 +398,9 @@ int pep30_input_curr_limit)
 
 	if (!handle)
 		return -1;
-
+#ifdef CONFIG_ZTE_THERMAL_INPUTCHARGER_LIMIT
+	chr_input_curr_limit = bat_char_curr_limit;
+#endif
 	handle->chr_input_curr_limit = chr_input_curr_limit;
 	handle->bat_chr_curr_limit = bat_char_curr_limit;
 	handle->pep30_input_curr_limit = pep30_input_curr_limit;

@@ -357,10 +357,32 @@ void hal_rtc_get_alarm(struct rtc_time *tm, struct rtc_wkalrm *alm)
 	alm->pending = !!(pdn2 & RTC_PDN2_PWRON_ALARM);
 }
 
+#ifdef CONFIG_ZTE_ADD_DIS_RTC_SYSFS
+/* dis_rtc+ */
+extern bool mtk_disable_rtc;
+void hal_rtc_dis_alarm(void)
+{
+	u16 irqsta, irqen, pdn2;
+
+	irqen = rtc_read(RTC_IRQ_EN) & ~RTC_IRQ_EN_AL;
+	pdn2 = rtc_read(RTC_PDN2) & ~RTC_PDN2_PWRON_ALARM;
+	rtc_write(RTC_IRQ_EN, irqen);
+	rtc_write(RTC_PDN2, pdn2);
+	rtc_write_trigger();
+	irqsta = rtc_read(RTC_IRQ_STA);	/* read clear */
+}
+/* dis_rtc- */
+#endif
+
 void hal_rtc_set_alarm(struct rtc_time *tm)
 {
 	u16 irqen;
-
+#ifdef CONFIG_ZTE_ADD_DIS_RTC_SYSFS
+/* dis_rtc+ */
+	if (mtk_disable_rtc)
+		return;
+/* dis_rtc+ */
+#endif
 	hal_rtc_set_alarm_time(tm);
 
 	irqen = rtc_read(RTC_IRQ_EN) | RTC_IRQ_EN_ONESHOT_AL;

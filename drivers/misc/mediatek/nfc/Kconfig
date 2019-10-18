@@ -7,3 +7,5 @@ config NFC_CHIP_SUPPORT
 	  ST21NFC is standalone NFC and ST54 is combined with secure element.
 	  If configures to be y, means devices supports NFC functionality.
 	  If configures to be n, means devices doesn't support NFC functionality.
+
+source "drivers/misc/mediatek/nfc/pn5xx-i2c/Kconfig"

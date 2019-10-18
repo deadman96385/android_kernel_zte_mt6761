@@ -31,6 +31,12 @@ char *imgsensor_sensor_idx_name[IMGSENSOR_SENSOR_IDX_MAX_NUM] = {
 	IMGSENSOR_SENSOR_IDX_NAME_MAIN3,
 };
 
+#if defined(OV16885_Z6201V_062_MIPI_RAW) || defined(GC5025_Z6201V_094_MIPI_RAW)
+#define IDX_LENGTH 100
+extern int zte_get_boardid(void);
+#define SENSOR_AVDD_PMIC (zte_get_boardid() > 0)
+#endif
+
 enum IMGSENSOR_RETURN imgsensor_hw_release_all(struct IMGSENSOR_HW *phw)
 {
 	int i;
@@ -58,8 +64,15 @@ enum IMGSENSOR_RETURN imgsensor_hw_init(struct IMGSENSOR_HW *phw)
 
 	for (i = 0; i < IMGSENSOR_SENSOR_IDX_MAX_NUM; i++) {
 		psensor_pwr = &phw->sensor_pwr[i];
-
+	#if defined(OV16885_Z6201V_062_MIPI_RAW) || defined(GC5025_Z6201V_094_MIPI_RAW)
+		if (SENSOR_AVDD_PMIC) {
+			pcust_pwr_cfg = imgsensor_custom_config_b;
+		} else {
+			pcust_pwr_cfg = imgsensor_custom_config;
+		}
+	#else
 		pcust_pwr_cfg = imgsensor_custom_config;
+	#endif
 		while (pcust_pwr_cfg->sensor_idx != i)
 			pcust_pwr_cfg++;
 
@@ -80,6 +93,19 @@ enum IMGSENSOR_RETURN imgsensor_hw_init(struct IMGSENSOR_HW *phw)
 	return IMGSENSOR_RETURN_SUCCESS;
 }
 
+#if defined(OV16885_Z6201V_062_MIPI_RAW) || defined(GC5025_Z6201V_094_MIPI_RAW)
+static char *convertOfZ6201V(enum IMGSENSOR_SENSOR_IDX sensor_idx,
+		char *pcurr_idx, char *pdest_idx)
+{
+	memset(pdest_idx, 0, IDX_LENGTH);
+	pdest_idx[0] = 'b';
+	pdest_idx[1] = '_';
+	strlcat(pdest_idx, pcurr_idx, IDX_LENGTH);
+	pr_err("CONVERT-%d: %s, pcurr_idx=%s", SENSOR_AVDD_PMIC, pdest_idx, pcurr_idx);
+	return  SENSOR_AVDD_PMIC ? pdest_idx : pcurr_idx;
+}
+#endif
+
 static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 	struct IMGSENSOR_HW             *phw,
 	enum   IMGSENSOR_SENSOR_IDX      sensor_idx,
@@ -95,9 +121,17 @@ static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 	struct IMGSENSOR_HW_DEVICE       *pdev;
 	int                               pin_cnt = 0;
 
+#if defined(OV16885_Z6201V_062_MIPI_RAW) || defined(GC5025_Z6201V_094_MIPI_RAW)
+	char cat_idx[IDX_LENGTH];
+#endif
+
 	while (ppwr_seq->idx != NULL &&
 		ppwr_seq < ppower_sequence + IMGSENSOR_HW_SENSOR_MAX_NUM &&
+	#if defined(OV16885_Z6201V_062_MIPI_RAW) || defined(GC5025_Z6201V_094_MIPI_RAW)
+		strcmp(ppwr_seq->idx, convertOfZ6201V(sensor_idx, pcurr_idx, cat_idx))) {
+	#else
 		strcmp(ppwr_seq->idx, pcurr_idx)) {
+	#endif
 		ppwr_seq++;
 	}
 
@@ -142,7 +176,11 @@ static enum IMGSENSOR_RETURN imgsensor_hw_power_sequence(
 			if (ppwr_info->pin != IMGSENSOR_HW_PIN_UNDEF) {
 				pdev =
 				    phw->pdev[psensor_pwr->id[ppwr_info->pin]];
-				mdelay(ppwr_info->pin_on_delay);
+				#if defined(ZTE_SP2509_094_A7S)
+					mdelay(ppwr_info->pin_off_delay);
+				#else
+					mdelay(ppwr_info->pin_on_delay);
+				#endif
 
 				if (pdev->set != NULL)
 					pdev->set(

@@ -76,7 +76,9 @@ static struct charger_consumer *chg_consumer;
 
 static void tcpc_mt_power_off(void)
 {
+#ifndef ZTE_FEATURE_PV_AR
 	kernel_power_off();
+#endif
 }
 
 #if CONFIG_MTK_GAUGE_VERSION == 20
@@ -112,8 +114,10 @@ void pd_chrdet_int_handler(void)
 
 		if (boot_mode == KERNEL_POWER_OFF_CHARGING_BOOT
 			|| boot_mode == LOW_POWER_OFF_CHARGING_BOOT) {
+#ifndef ZTE_FEATURE_PV_AR
 			pr_notice("[%s] Unplug Charger/USB\n", __func__);
 			kernel_power_off();
+#endif
 		}
 	}
 
@@ -314,9 +318,11 @@ static int pd_tcp_notifier_call(struct notifier_block *nb,
 			if (ret < 0) {
 				if (boot_mode == KERNEL_POWER_OFF_CHARGING_BOOT
 				|| boot_mode == LOW_POWER_OFF_CHARGING_BOOT) {
+#ifndef ZTE_FEATURE_PV_AR
 					pr_info("%s: notify chg detach fail, power off\n",
 						__func__);
 					kernel_power_off();
+#endif
 				}
 			}
 		} else if (noti->typec_state.old_state == TYPEC_ATTACHED_SRC &&

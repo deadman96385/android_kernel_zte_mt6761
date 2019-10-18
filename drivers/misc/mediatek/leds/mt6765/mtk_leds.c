@@ -41,6 +41,8 @@
 #include "ddp_pwm.h"
 #include "mtkfb.h"
 
+#define ZTE_PMIC_LEDS_PEROID
+
 #define MET_USER_EVENT_SUPPORT
 #ifdef MET_USER_EVENT_SUPPORT
 #include <mt-plat/met_drv.h>
@@ -554,10 +556,11 @@ static int led_switch_breath_pmic(enum mt65xx_led_pmic pmic_type,
 }
 #endif
 
-#define PMIC_PERIOD_NUM 8
+#ifndef ZTE_PMIC_LEDS_PEROID
+#define PMIC_PERIOD_NUM 11
 
-int pmic_period_array[] = { 2, 4, 6, 8, 10, 12, 20, 60 };
-int pmic_freqsel_array[] = { 0, 1, 2, 3, 4, 5, 9, 28 };
+int pmic_period_array[] = { 2, 4, 6, 8, 10, 12, 20, 60, 3500, 5000, 10000 };
+int pmic_freqsel_array[] = { 0, 1, 2, 3, 4, 5, 9, 28, 1749, 2499, 4999 };
 
 
 
@@ -571,6 +574,30 @@ static int find_time_index_pmic(int time_ms)
 	}
 	return PMIC_PERIOD_NUM - 1;
 }
+#else
+#define PMIC_PERIOD_NUM 1
+
+#define PMIC_PEROID_DEFAULT_VALUE 10000
+#define PMIC_FREQSEL_DEFAULT_VALUE 4999
+int pmic_period_array[] = { PMIC_PEROID_DEFAULT_VALUE };
+int pmic_freqsel_array[] = { PMIC_FREQSEL_DEFAULT_VALUE };
+
+
+
+static int find_time_index_pmic(int time_ms)
+{
+	if(time_ms > 10000) {
+		pmic_period_array[0] = PMIC_PEROID_DEFAULT_VALUE;
+		pmic_freqsel_array[0] = PMIC_FREQSEL_DEFAULT_VALUE;
+	} else {
+		time_ms = (time_ms + 49) /50 * 50;
+
+		pmic_period_array[0] = time_ms;
+		pmic_freqsel_array[0] = time_ms /2 -1;
+	}
+	return 0;
+}
+#endif
 
 int mt_led_blink_pmic(enum mt65xx_led_pmic pmic_type, struct nled_setting *led)
 {
@@ -603,7 +630,7 @@ int mt_led_blink_pmic(enum mt65xx_led_pmic pmic_type, struct nled_setting *led)
 		pmic_set_register_value(PMIC_ISINK_CH1_EN, NLED_OFF);
 		pmic_set_register_value(PMIC_RG_DRV_ISINK1_CK_PDN, 0);
 		pmic_set_register_value(PMIC_ISINK_CH1_MODE, ISINK_PWM_MODE);
-		pmic_set_register_value(PMIC_ISINK_CH1_STEP, ISINK_3);
+		pmic_set_register_value(PMIC_ISINK_CH1_STEP, ISINK_1);
 		pmic_set_register_value(PMIC_ISINK_DIM1_DUTY, duty);
 		pmic_set_register_value(PMIC_ISINK_DIM1_FSEL,
 			pmic_freqsel_array[time_index]);
@@ -901,6 +928,114 @@ void mt_mt65xx_led_work(struct work_struct *work)
 	mutex_unlock(&leds_mutex);
 }
 
+#ifdef CONFIG_ZTE_LCD_BACKLIGHT_LEVEL_CURVE
+int curve_matrix = 0;
+enum {	/* lcd curve mode */
+	CURVE_MATRIX_MAX_350_LUX = 1,
+	CURVE_MATRIX_MAX_400_LUX,
+	CURVE_MATRIX_MAX_450_LUX,
+};
+const int zte_backlight_curve_matrix_max_350_lux[256] = {
+0, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 5, 8, 8, 9, 9,
+10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 16, 16, 17, 17, 18,
+18, 19, 19, 20, 21, 21, 22, 22, 23, 23, 24, 25, 25, 26, 26, 27,
+28, 28, 29, 29, 30, 31, 31, 32, 33, 33, 34, 35, 35, 36, 36, 37,
+38, 38, 39, 40, 40, 41, 42, 43, 43, 44, 45, 45, 46, 47, 47, 48,
+49, 50, 50, 51, 52, 52, 53, 54, 55, 55, 56, 57, 58, 58, 59, 60,
+61, 61, 62, 63, 64, 64, 65, 66, 67, 68, 68, 69, 70, 71, 72, 73,
+74, 75, 76, 77, 77, 78, 79, 80, 81, 82, 82, 83, 84, 85, 86, 87,
+88, 88, 89, 90, 91, 92, 93, 94, 95, 96, 96, 97, 98, 99, 100, 101,
+102, 103, 104, 105, 106, 107, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116,
+117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132,
+133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 146, 147,
+148, 149, 151, 152, 153, 155, 156, 157, 159, 160, 162, 163, 164, 166, 167, 169,
+170, 172, 173, 175, 176, 178, 179, 181, 183, 184, 186, 187, 189, 191, 192, 194,
+196, 197, 199, 201, 203, 204, 206, 208, 210, 212, 214, 215, 217, 219, 221, 223,
+225, 227, 229, 231, 233, 235, 237, 239, 241, 243, 245, 248, 250, 252, 254, 255
+};
+
+const int zte_backlight_curve_matrix_max_400_lux[256] = {
+0, 3, 3, 3, 3, 3, 4, 4, 5, 5, 6, 6, 6, 7, 7, 8,
+8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14, 15, 15, 16,
+16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 23, 24,
+25, 25, 26, 26, 27, 27, 28, 28, 29, 30, 30, 31, 31, 32, 32, 33,
+34, 34, 35, 35, 36, 37, 37, 38, 38, 39, 40, 40, 41, 42, 42, 43,
+43, 44, 45, 45, 46, 47, 47, 48, 49, 49, 50, 51, 51, 52, 53, 53,
+54, 55, 55, 56, 57, 57, 58, 59, 59, 60, 61, 61, 62, 63, 64, 64,
+65, 66, 66, 67, 68, 69, 69, 70, 71, 72, 72, 73, 74, 74, 75, 76,
+77, 78, 78, 79, 80, 81, 81, 82, 83, 84, 84, 85, 86, 87, 88, 88,
+89, 90, 91, 92, 92, 93, 94, 95, 96, 96, 97, 98, 99, 100, 101, 101,
+102, 103, 104, 105, 106, 107, 107, 108, 109, 110, 111, 112, 113, 113, 114, 115,
+116, 117, 118, 119, 120, 121, 121, 122, 123, 124, 125, 126, 127, 128, 129, 129,
+130, 132, 133, 134, 136, 137, 139, 140, 142, 143, 145, 147, 148, 150, 151, 153,
+155, 156, 158, 160, 162, 163, 165, 167, 169, 170, 172, 174, 176, 178, 180, 182,
+184, 186, 188, 190, 192, 194, 196, 198, 200, 203, 205, 207, 209, 212, 214, 216,
+219, 221, 223, 226, 228, 231, 233, 236, 238, 241, 243, 246, 249, 252, 254, 255
+};
+
+const int zte_backlight_curve_matrix_max_450_lux[256] = {
+0, 3, 3, 3, 3, 3, 4, 4, 4, 5, 5, 6, 6, 6, 7, 7,
+8, 8, 8, 9, 9, 10, 10, 10, 11, 11, 12, 12, 13, 13, 13, 14,
+14, 15, 15, 16, 16, 17, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21,
+22, 22, 23, 23, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 29,
+30, 30, 31, 31, 32, 32, 33, 33, 34, 34, 35, 36, 36, 37, 37, 38,
+38, 39, 39, 40, 41, 41, 42, 42, 43, 43, 44, 45, 45, 46, 46, 47,
+48, 48, 49, 49, 50, 51, 51, 52, 52, 53, 54, 54, 55, 56, 56, 57,
+57, 58, 59, 59, 60, 61, 61, 62, 63, 63, 64, 65, 65, 66, 67, 67,
+68, 69, 69, 70, 71, 71, 72, 73, 73, 74, 75, 75, 76, 77, 78, 78,
+79, 80, 80, 81, 82, 83, 83, 84, 85, 85, 86, 87, 88, 88, 89, 90,
+91, 91, 92, 93, 94, 94, 95, 96, 97, 97, 98, 99, 100, 101, 101, 102,
+103, 104, 105, 105, 106, 107, 108, 109, 109, 110, 111, 112, 112, 112, 113, 113,
+114, 116, 117, 119, 120, 122, 123, 125, 126, 128, 130, 131, 133, 135, 136, 138,
+140, 142, 143, 145, 147, 149, 151, 153, 155, 157, 159, 161, 163, 165, 167, 169,
+171, 173, 176, 178, 180, 183, 185, 187, 190, 192, 194, 197, 199, 202, 205, 207,
+210, 213, 215, 218, 221, 224, 226, 229, 232, 235, 238, 241, 244, 248, 251, 255
+};
+
+static int zte_convert_backlight_function(int level)
+{
+	int  convert_level;
+
+	if (level == 0)
+		return 0;
+
+
+	switch (curve_matrix) {
+	case CURVE_MATRIX_MAX_350_LUX:
+		convert_level = zte_backlight_curve_matrix_max_350_lux[level];
+		break;
+	case CURVE_MATRIX_MAX_400_LUX:
+		convert_level = zte_backlight_curve_matrix_max_400_lux[level];
+		break;
+	case CURVE_MATRIX_MAX_450_LUX:
+		convert_level = zte_backlight_curve_matrix_max_450_lux[level];
+		break;
+	default:
+		convert_level = level;
+		break;
+	}
+
+	pr_info("%s: from %d to %d\n", __func__, level, convert_level);
+
+	return convert_level;
+}
+
+void set_lcm_backlight_curve_mode(int mode)
+{
+	pr_info("%s: mode = %d\n", __func__, mode);
+	if (mode != 0) {
+		if (mode == 350)
+			curve_matrix = CURVE_MATRIX_MAX_350_LUX;
+		else if (mode == 400)
+			curve_matrix = CURVE_MATRIX_MAX_400_LUX;
+		else if (mode == 450)
+			curve_matrix = CURVE_MATRIX_MAX_450_LUX;
+		else
+			curve_matrix = 0;
+	}
+}
+
+#endif
 void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 {
 	struct mt65xx_led_data *led_data =
@@ -908,6 +1043,15 @@ void mt_mt65xx_led_set(struct led_classdev *led_cdev, enum led_brightness level)
 	/* unsigned long flags; */
 	/* spin_lock_irqsave(&leds_lock, flags); */
 
+#ifdef CONFIG_ZTE_LCD_BACKLIGHT_LEVEL_CURVE
+	if (strcmp(led_data->cust.name, "lcd-backlight") == 0) {
+		pr_info("%s: lcm backlight level = %d curve_matrix=%d\n", __func__, level, curve_matrix);
+		if (curve_matrix != 0) {
+			level = zte_convert_backlight_function(level);
+			msleep(50);
+		}
+	}
+#endif
 #ifdef CONFIG_MTK_AAL_SUPPORT
 	if (led_data->level != level) {
 		led_data->level = level;

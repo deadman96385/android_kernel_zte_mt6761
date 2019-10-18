@@ -1,0 +1,26 @@
+This is a introduction for flashlight chip AW3648
+
+[Scope]
+- one channel for one LED
+- Two silicon revision
+	* AW3648
+	* AW3648LT (Half torch current)
+
+
+[Hardware Interface]
+- I2C
+	* For general control
+	* Slave address 0x63
+
+
+[Limit]
+- Torch Mode
+	* Min currnet: 5.1 mA (5.1 mA for AW3648)
+	* Max current: 372 mA (186 mA for AW3648)
+
+- Strobe Mode
+	* Min currnet: 22.7 mA
+	* Max current: 1500 mA
+	* Min protected timeout: 40 ms
+	* Max protected timeout: 1600 ms
+

@@ -275,9 +275,14 @@ void fpsgo_ctrl2comp_enqueue_start(int pid,
 
 		f_render->buffer_id = buffer_id;
 		ret = fpsgo_com_update_render_api_info(f_render);
-		if (!ret)
-			goto exit;
+		if (!ret) {
+			fpsgo_render_tree_unlock(__func__);
+			fpsgo_thread_unlock(&f_render->thr_mlock);
+			return;
+		}
 	}
+
+	fpsgo_render_tree_unlock(__func__);
 
 	switch (f_render->frame_type) {
 	case VSYNC_ALIGNED_TYPE:
@@ -342,10 +347,7 @@ void fpsgo_ctrl2comp_enqueue_start(int pid,
 			pid, f_render->frame_type);
 		break;
 	}
-
-exit:
 	fpsgo_thread_unlock(&f_render->thr_mlock);
-	fpsgo_render_tree_unlock(__func__);
 }
 
 void fpsgo_ctrl2comp_enqueue_end(int pid,
@@ -379,7 +381,7 @@ void fpsgo_ctrl2comp_enqueue_end(int pid,
 	}
 
 	fpsgo_thread_lock(&f_render->thr_mlock);
-
+	fpsgo_render_tree_unlock(__func__);
 	switch (f_render->frame_type) {
 	case VSYNC_ALIGNED_TYPE:
 		f_render->t_enqueue_end = enqueue_end_time;
@@ -423,7 +425,7 @@ void fpsgo_ctrl2comp_enqueue_end(int pid,
 		break;
 	}
 	fpsgo_thread_unlock(&f_render->thr_mlock);
-	fpsgo_render_tree_unlock(__func__);
+
 }
 
 void fpsgo_ctrl2comp_dequeue_start(int pid,
@@ -456,6 +458,7 @@ void fpsgo_ctrl2comp_dequeue_start(int pid,
 	}
 
 	fpsgo_thread_lock(&f_render->thr_mlock);
+	fpsgo_render_tree_unlock(__func__);
 
 	switch (f_render->frame_type) {
 	case VSYNC_ALIGNED_TYPE:
@@ -492,7 +495,7 @@ void fpsgo_ctrl2comp_dequeue_start(int pid,
 		break;
 	}
 	fpsgo_thread_unlock(&f_render->thr_mlock);
-	fpsgo_render_tree_unlock(__func__);
+
 }
 
 void fpsgo_ctrl2comp_dequeue_end(int pid,
@@ -526,6 +529,7 @@ void fpsgo_ctrl2comp_dequeue_end(int pid,
 	}
 
 	fpsgo_thread_lock(&f_render->thr_mlock);
+	fpsgo_render_tree_unlock(__func__);
 
 	switch (f_render->frame_type) {
 	case VSYNC_ALIGNED_TYPE:
@@ -571,7 +575,7 @@ void fpsgo_ctrl2comp_dequeue_end(int pid,
 		break;
 	}
 	fpsgo_thread_unlock(&f_render->thr_mlock);
-	fpsgo_render_tree_unlock(__func__);
+
 }
 
 void fpsgo_ctrl2comp_vysnc_aligned_frame_start(int pid,
@@ -816,8 +820,8 @@ void fpsgo_ctrl2comp_vysnc_aligned_frame_done(int pid,
 		ui = fpsgo_com_search_and_add_ui_pid_info(ui_pid, 1);
 
 		if (!ui) {
-			fpsgo_thread_unlock(&f_render->thr_mlock);
 			fpsgo_render_tree_unlock(__func__);
+			fpsgo_thread_unlock(&f_render->thr_mlock);
 			FPSGO_COM_TRACE("%s: store ui info fail : %d !!!!\n",
 				__func__, pid);
 			return;
@@ -838,16 +842,16 @@ void fpsgo_ctrl2comp_vysnc_aligned_frame_done(int pid,
 
 		ret = fpsgo_com_update_render_api_info(f_render);
 		if (!ret) {
-			fpsgo_thread_unlock(&f_render->thr_mlock);
 			fpsgo_render_tree_unlock(__func__);
+			fpsgo_thread_unlock(&f_render->thr_mlock);
 			return;
 		}
 	}
 
+	fpsgo_render_tree_unlock(__func__);
 
 	if (f_render->frame_type == BY_PASS_TYPE) {
 		fpsgo_thread_unlock(&f_render->thr_mlock);
-		fpsgo_render_tree_unlock(__func__);
 		return;
 	}
 
@@ -900,7 +904,7 @@ out:
 		pid, f_render->ui_pid, f_render->frame_type,
 		frame_time, render, render_method);
 	fpsgo_thread_unlock(&f_render->thr_mlock);
-	fpsgo_render_tree_unlock(__func__);
+
 }
 
 void fpsgo_ctrl2comp_connect_api(int pid, unsigned long long buffer_id, int api)
@@ -939,10 +943,7 @@ void fpsgo_com_clear_connect_api_render_list(
 
 	list_for_each_entry_safe(pos, next,
 		&connect_api->render_list, bufferid_list) {
-		int ui_pid = pos->ui_pid;
-
 		fpsgo_delete_render_info(pos->pid);
-		fpsgo_base2com_delete_ui_pid_info(ui_pid);
 	}
 
 }
@@ -972,7 +973,6 @@ void fpsgo_ctrl2comp_disconnect_api(
 		fpsgo_render_tree_unlock(__func__);
 		return;
 	}
-
 	fpsgo_com_clear_connect_api_render_list(connect_api);
 	rb_erase(&connect_api->rb_node, &connect_api_tree);
 	kfree(connect_api);
@@ -1034,7 +1034,6 @@ static int fspgo_com_connect_api_info_show
 	struct connect_api_info *iter;
 	struct task_struct *tsk;
 	struct render_info *pos, *next;
-	struct ui_pid_info *ui_iter;
 
 	seq_puts(m, "=================================\n");
 
@@ -1064,20 +1063,6 @@ static int fspgo_com_connect_api_info_show
 		}
 		seq_puts(m, "***********************\n");
 		seq_puts(m, "=================================\n");
-	}
-
-	n = rb_first(&ui_pid_tree);
-
-	while (n) {
-		struct render_info *pos, *next;
-
-		ui_iter = rb_entry(n, struct ui_pid_info, rb_node);
-		seq_printf(m, "%5d:", ui_iter->ui_pid);
-		list_for_each_entry_safe(pos, next,
-				&ui_iter->render_list, ui_list)
-			seq_printf(m, "[%d]", pos->pid);
-		seq_puts(m, "\n***********************\n");
-		n = rb_next(n);
 	}
 
 	rcu_read_unlock();

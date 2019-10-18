@@ -74,6 +74,11 @@ struct charger_ops {
 	int (*get_eoc_current)(struct charger_device *dev, u32 *uA);
 	int (*set_eoc_current)(struct charger_device *dev, u32 uA);
 
+#ifdef CONFIG_VENDOR_CHARGE_ARBITRATE_SERVICE
+	/* set recharge voltage */
+	int (*get_recharge_voltage)(struct charger_device *dev, u32 *uV);
+	int (*set_recharge_voltage)(struct charger_device *dev, u32 uV);
+#endif
 	/* kick wdt */
 	int (*kick_wdt)(struct charger_device *dev);
 
@@ -138,6 +143,11 @@ struct charger_ops {
 	int (*get_fod_status)(struct charger_device *dev, u8 *status);
 	int (*enable_fod_oneshot)(struct charger_device *dev, bool en);
 	int (*is_typec_ot)(struct charger_device *dev, bool *ot);
+
+	/* enable/disable ship mode */
+	int (*set_ship_mode)(struct charger_device *, bool en);
+	int (*get_ship_mode)(struct charger_device *, bool *en);
+
 };
 
 static inline void *charger_dev_get_drvdata(
@@ -183,6 +193,10 @@ extern int charger_dev_set_input_current(
 	struct charger_device *charger_dev, u32 uA);
 extern int charger_dev_get_input_current(
 	struct charger_device *charger_dev, u32 *uA);
+extern int charger_dev_set_ship_mode(
+	struct charger_device *charger_dev, bool en);
+extern int charger_dev_get_ship_mode(
+	struct charger_device *charger_dev, bool *en);
 extern int charger_dev_get_min_input_current(
 	struct charger_device *charger_dev, u32 *uA);
 extern int charger_dev_set_eoc_current(
@@ -233,6 +247,11 @@ extern int charger_dev_reset_eoc_state(
 	struct charger_device *charger_dev);
 extern int charger_dev_safety_check(
 	struct charger_device *charger_dev);
+
+#ifdef CONFIG_VENDOR_CHARGE_ARBITRATE_SERVICE
+extern int charger_dev_get_recharge_voltage(struct charger_device *charger_dev, u32 *uV);
+extern int charger_dev_set_recharge_voltage(struct charger_device *charger_dev, u32 uV);
+#endif
 
 /* PE+/PE+2.0 */
 extern int charger_dev_send_ta_current_pattern(

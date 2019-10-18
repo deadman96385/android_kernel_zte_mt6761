@@ -76,7 +76,11 @@
 #define FLASHLIGHT_ARG_LEVEL 3
 #define FLASHLIGHT_ARG_DUR   4
 #define FLASHLIGHT_ARG_LEVEL_MAX 255
+#ifdef CONFIG_MTK_FLASHLIGHT_GPIO
+#define FLASHLIGHT_ARG_DUR_MAX   300000 /* ms */
+#else
 #define FLASHLIGHT_ARG_DUR_MAX   3000 /* ms */
+#endif
 struct flashlight_arg {
 	int type;
 	int ct;

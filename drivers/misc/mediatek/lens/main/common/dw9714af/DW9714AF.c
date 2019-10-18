@@ -199,13 +199,28 @@ long DW9714AF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
 /* Q1 : Try release multiple times. */
 int DW9714AF_Release(struct inode *a_pstInode, struct file *a_pstFile)
 {
+	char puSendCmd[2] = { 0x80, 0x00 };
+	int i4RetValue = 0;
 	LOG_INF("Start\n");
 
 	if (*g_pAF_Opened == 2) {
 		LOG_INF("Wait\n");
+		s4AF_WriteReg(0xc4);
+		msleep(20);
+		s4AF_WriteReg(0x81);
+		msleep(20);
 		s4AF_WriteReg(0x80); /* Power down mode */
+		msleep(20);
 	}
+	g_pstAF_I2Cclient->addr = AF_I2C_SLAVE_ADDR;
 
+	g_pstAF_I2Cclient->addr = g_pstAF_I2Cclient->addr >> 1;
+
+	i4RetValue = i2c_master_send(g_pstAF_I2Cclient, puSendCmd, 2);
+
+	if (i4RetValue < 0) {
+		LOG_INF("I2C send failed!!\n");
+	}
 	if (*g_pAF_Opened) {
 		LOG_INF("Free\n");
 

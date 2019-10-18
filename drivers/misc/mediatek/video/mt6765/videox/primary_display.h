@@ -322,6 +322,8 @@ int primary_display_set_frame_buffer_address(unsigned long va,
 unsigned long primary_display_get_frame_buffer_mva_address(void);
 unsigned long primary_display_get_frame_buffer_va_address(void);
 int primary_display_suspend(void);
+void primary_display_set_shutdown_suspend_flag(unsigned int is_shutdowm_suspend);
+unsigned int primary_display_get_shutdown_suspend_flag(void);
 int primary_display_resume(void);
 int primary_display_ipoh_restore(void);
 int primary_display_get_width(void);

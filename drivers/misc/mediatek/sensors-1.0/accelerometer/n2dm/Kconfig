@@ -1,0 +1,4 @@
+
+config MTK_N2DM
+	bool "N2DM for MediaTek package"
+	default n

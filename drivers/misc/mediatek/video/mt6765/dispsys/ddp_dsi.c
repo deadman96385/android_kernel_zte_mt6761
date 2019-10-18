@@ -46,6 +46,11 @@
 #include "primary_display.h"
 
 #include <asm/arch_timer.h>
+
+#ifdef CONFIG_ZTE_LCD_COMMON_FUNCTION
+#include "zte_lcd_common.h"
+extern void zte_lcd_common_func(struct LCM_DRIVER *lcm_drv, struct LCM_UTIL_FUNCS *utils);
+#endif
 /*****************************************************************************/
 enum MIPITX_PAD_VALUE {
 	PAD_D2P_V = 0,
@@ -3712,6 +3717,10 @@ int ddp_dsi_set_lcm_utils(enum DISP_MODULE_ENUM module,
 #endif
 
 	lcm_drv->set_util_funcs(utils);
+#ifdef CONFIG_ZTE_LCD_COMMON_FUNCTION
+	zte_lcd_common_func(lcm_drv, utils);
+#endif
+
 
 	return 0;
 }

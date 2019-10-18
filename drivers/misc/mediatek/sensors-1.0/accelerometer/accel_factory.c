@@ -170,11 +170,19 @@ static long acc_factory_unlocked_ioctl(struct file *file, unsigned int cmd,
 			return -EFAULT;
 		return 0;
 	case GSENSOR_IOCTL_ENABLE_CALI:
-		if (accel_factory.fops != NULL &&
-		    accel_factory.fops->enable_calibration != NULL) {
+		if (accel_factory.fops != NULL
+			&& accel_factory.fops->enable_calibration != NULL
+			&& accel_factory.fops->get_cali != NULL) {
+			pr_debug("gsensor enable_calibration enter!\n");
 			err = accel_factory.fops->enable_calibration();
 			if (err < 0) {
 				pr_err("GSENSOR_IOCTL_ENABLE_CALI FAIL!\n");
+				return -EINVAL;
+			}
+			pr_debug("gsensor get_cali enter!\n");
+			err = accel_factory.fops->get_cali(data_buf);
+			if (err < 0) {
+				ACC_PR_ERR("GSENSOR_IOCTL_GET_CALI FAIL!\n");
 				return -EINVAL;
 			}
 		} else {

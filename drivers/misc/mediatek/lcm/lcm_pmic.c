@@ -14,6 +14,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/string.h>
 #include <linux/kernel.h>
+#include "lcm_drv.h"
 
 #if defined(CONFIG_RT5081_PMU_DSV) || defined(CONFIG_MT6370_PMU_DSV)
 static struct regulator *disp_bias_pos;
@@ -48,20 +49,41 @@ int display_bias_regulator_init(void)
 }
 EXPORT_SYMBOL(display_bias_regulator_init);
 
+extern struct LCM_PARAMS *DISP_GetLcmPara(void);
 int display_bias_enable(void)
 {
 	int ret = 0;
 	int retval = 0;
+	struct LCM_PARAMS *pLcm_params = NULL;
+	unsigned int vsp_vsn_voltage = 0;
+
+	pr_info("%s: \n", __func__);
 
 	display_bias_regulator_init();
 
+	pLcm_params = DISP_GetLcmPara();
+	if (pLcm_params != NULL) {
+		vsp_vsn_voltage = pLcm_params->dsi.lcm_vsp_vsn_voltage;
+		pr_info("%s: vsp_vsn_voltage = %d ", __func__, vsp_vsn_voltage);
+	}
+
 	/* set voltage with min & max*/
-	ret = regulator_set_voltage(disp_bias_pos, 5400000, 5400000);
+	if (vsp_vsn_voltage != 0) {
+		ret = regulator_set_voltage(disp_bias_pos,
+				vsp_vsn_voltage*1000, vsp_vsn_voltage*1000);
+	} else {
+		ret = regulator_set_voltage(disp_bias_pos, 5400000, 5400000);
+	}
 	if (ret < 0)
-		pr_info("set voltage disp_bias_pos fail, ret = %d\n", ret);
+		pr_err("set voltage disp_bias_pos fail, ret = %d\n", ret);
 	retval |= ret;
 
-	ret = regulator_set_voltage(disp_bias_neg, 5400000, 5400000);
+	if (vsp_vsn_voltage != 0) {
+		ret = regulator_set_voltage(disp_bias_neg,
+				vsp_vsn_voltage*1000, vsp_vsn_voltage*1000);
+	} else {
+		ret = regulator_set_voltage(disp_bias_neg, 5400000, 5400000);
+	}
 	if (ret < 0)
 		pr_info("set voltage disp_bias_neg fail, ret = %d\n", ret);
 	retval |= ret;
@@ -99,6 +121,7 @@ int display_bias_disable(void)
 {
 	int ret = 0;
 	int retval = 0;
+	pr_info("%s: \n", __func__);
 
 	display_bias_regulator_init();
 

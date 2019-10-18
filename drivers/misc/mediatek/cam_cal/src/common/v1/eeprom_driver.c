@@ -47,6 +47,15 @@
 #define CAM_CAL_I2C_DEV3_NAME "CAM_CAL_DEV3"
 #define CAM_CAL_I2C_DEV4_NAME "CAM_CAL_DEV4"
 
+#ifdef CAM_CAL_INSENSOR_AF_OTP
+extern void hi846_otp_setting(void);
+extern  void hi846_otp_disable(void);
+extern  int hi846_otp_read_(u32 offset, u8 *data, u32 size);
+DEFINE_MUTEX(HI846_OTP_MUTEX);
+
+extern void Gc8034_Send_AF_OTP(u8 *data, u32 size);
+#endif
+
 static dev_t g_devNum = MKDEV(CAM_CAL_DEV_MAJOR_NUMBER, 0);
 static struct cdev *g_charDrv;
 static struct class *g_drvClass;
@@ -661,6 +670,23 @@ static long EEPROM_drv_ioctl(struct file *file,
 
 		pr_debug("SensorID=%x DeviceID=%x\n",
 			ptempbuf->sensorID, ptempbuf->deviceID);
+
+#ifdef CAM_CAL_INSENSOR_AF_OTP
+		/*gc8034 transform AF otp*/
+		if (ptempbuf->sensorID == 0x8044) {
+			Gc8034_Send_AF_OTP(pu1Params, ptempbuf->u4Length);
+			pr_debug("copy pu1Params[0]=0x%x,pu1Params[1]=0x%x,pu1Params[2]=0x%x,pu1Params[3]=0x%x\n",
+				pu1Params[0], pu1Params[1], pu1Params[2], pu1Params[3]);
+		}
+		/*hi846 transform AF otp*/
+		if (ptempbuf->sensorID == 0x0846) {
+			mutex_lock(&HI846_OTP_MUTEX);
+			hi846_otp_setting();
+			hi846_otp_read_(ptempbuf->u4Offset, pu1Params, ptempbuf->u4Length);
+			hi846_otp_disable();
+			mutex_unlock(&HI846_OTP_MUTEX);
+		}
+#else
 		pcmdInf = EEPROM_get_cmd_info_ex(
 			ptempbuf->sensorID,
 			ptempbuf->deviceID);
@@ -699,6 +725,7 @@ static long EEPROM_drv_ioctl(struct file *file,
 
 		pr_debug("Read data %d bytes take %lu us\n",
 			ptempbuf->u4Length, TimeIntervalUS);
+#endif
 #endif
 		break;
 

@@ -232,12 +232,22 @@ static unsigned int ccci_rat_str_to_bitmap(char str[])
 
 static const unsigned int ubin_convert_table_src[] = {
 	(MD_CAP_GSM|MD_CAP_TDD_LTE|MD_CAP_FDD_LTE|MD_CAP_CDMA2000),
+	#if defined(ZTE_FEATURE_VZWVISIBLE_LTE_ONLY)
+	(MD_CAP_GSM|MD_CAP_WCDMA|MD_CAP_CDMA2000),
+	(MD_CAP_FDD_LTE)
+	#else
 	(MD_CAP_GSM|MD_CAP_WCDMA|MD_CAP_CDMA2000)
+	#endif
 };
 
 static const unsigned int ubin_convert_table_des[] = {
 	(MD_CAP_GSM|MD_CAP_WCDMA|MD_CAP_TDD_LTE|MD_CAP_FDD_LTE|MD_CAP_CDMA2000),
+	#if defined(ZTE_FEATURE_VZWVISIBLE_LTE_ONLY)
+	(MD_CAP_GSM|MD_CAP_WCDMA|MD_CAP_TDD_LTE|MD_CAP_FDD_LTE|MD_CAP_CDMA2000),
+	(MD_CAP_FDD_LTE|MD_CAP_WCDMA|MD_CAP_GSM)
+	#else
 	(MD_CAP_GSM|MD_CAP_WCDMA|MD_CAP_TDD_LTE|MD_CAP_FDD_LTE|MD_CAP_CDMA2000)
+	#endif
 };
 
 static unsigned int compatible_convert(unsigned int src_rat)

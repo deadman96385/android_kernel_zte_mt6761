@@ -3562,34 +3562,54 @@ static int _present_fence_release_worker_thread(void *data)
 	dpmgr_enable_event(pgc->dpmgr_handle, DISP_PATH_EVENT_IF_VSYNC);
 
 	while (1) {
-		int ret = 0;
+		int fence_increment = 0;
+		int timeline_id;
+		struct disp_sync_info *layer_info;
 
 		wait_event_interruptible(primary_display_present_fence_wq,
 			atomic_read(&primary_display_pt_fence_update_event));
-
+		mmprofile_log_ex(ddp_mmp_get_events()->present_fence_release,
+			MMPROFILE_FLAG_PULSE, 0, 0);
 		atomic_set(&primary_display_pt_fence_update_event, 0);
+
 		if (!islcmconnected && !primary_display_is_video_mode()) {
 			DISPCHECK("LCM Not Connected && CMD Mode\n");
 			msleep(20);
 		} else if (disp_helper_get_option(DISP_OPT_ARR_PHASE_1)) {
-	/*dpmgr_wait_event(pgc->dpmgr_handle, DISP_PATH_EVENT_IF_VSYNC);*/
 			dpmgr_wait_event_timeout(pgc->dpmgr_handle,
 				DISP_PATH_EVENT_FRAME_START, HZ/10);
 		} else {
 			dpmgr_wait_event_timeout(pgc->dpmgr_handle,
 				DISP_PATH_EVENT_IF_VSYNC, HZ/10);
-	/*dpmgr_wait_event(pgc->dpmgr_handle, DISP_PATH_EVENT_FRAME_DONE);*/
 			mmprofile_log_ex(
 				ddp_mmp_get_events()->present_fence_release,
 				MMPROFILE_FLAG_PULSE, 1, 1);
 		}
 
-		_primary_path_lock(__func__);
-		ret = mtkfb_release_present_fence(primary_session_id,
-			gPresentFenceIndex);
-		_primary_path_unlock(__func__);
-		if (ret == -1)
+		timeline_id = disp_sync_get_present_timeline_id();
+		layer_info = _get_sync_info(primary_session_id, timeline_id);
+		if (layer_info == NULL) {
+			mmprofile_log_ex(
+				ddp_mmp_get_events()->present_fence_release,
+				MMPROFILE_FLAG_PULSE, -1, 0x5a5a5a5a);
 			continue;
+		}
+
+		_primary_path_lock(__func__);
+		fence_increment =
+			gPresentFenceIndex - layer_info->timeline->value;
+		if (fence_increment > 0) {
+			timeline_inc(layer_info->timeline, fence_increment);
+			DISPPR_FENCE("R+/%s%d/L%d/id%d\n",
+				disp_session_mode_spy(primary_session_id),
+				DISP_SESSION_DEV(primary_session_id),
+				timeline_id,
+				gPresentFenceIndex);
+		}
+		mmprofile_log_ex(ddp_mmp_get_events()->present_fence_release,
+				 MMPROFILE_FLAG_PULSE,
+				 gPresentFenceIndex, fence_increment);
+		_primary_path_unlock(__func__);
 
 		if (atomic_read(&od_trigger_kick)) {
 			atomic_set(&od_trigger_kick, 0);
@@ -4506,7 +4526,6 @@ int primary_suspend_release_fence(void)
 			session, i);
 		mtkfb_release_layer_fence(session, i);
 	}
-	mtkfb_release_present_fence(primary_session_id, gPresentFenceIndex);
 	return 0;
 }
 
@@ -4540,6 +4559,18 @@ int suspend_to_full_roi(void)
 	cmdqRecFlush(handle);
 	cmdqRecDestroy(handle);
 	return ret;
+}
+
+static unsigned int shutdown_suspend_flag = 0;
+void primary_display_set_shutdown_suspend_flag(unsigned int is_shutdowm_suspend)
+{
+	shutdown_suspend_flag = is_shutdowm_suspend;
+	pr_info("%s: shutdown_suspend_flag = %d\n", __func__, shutdown_suspend_flag);
+}
+
+unsigned int primary_display_get_shutdown_suspend_flag(void)
+{
+	return shutdown_suspend_flag;
 }
 
 int primary_display_suspend(void)
@@ -4667,7 +4698,6 @@ int primary_display_suspend(void)
 			primary_display_set_lcm_power_state_nolock(
 				LCM_ON_LOW_POWER);
 		}
-		primary_suspend_release_fence();
 	} else if (primary_display_get_power_mode_nolock() == FB_SUSPEND) {
 		DISPCHECK("[POWER]lcm suspend[begin]\n");
 		disp_lcm_suspend(pgc->plcm);
@@ -8643,6 +8673,7 @@ static int Panel_Master_primary_display_config_dsi(const char *name,
 	if (!strcmp(name, "PM_CLK")) {
 		pr_debug("Pmaster_config_dsi: PM_CLK:%d\n", config_value);
 		data_config->dispif_config.dsi.PLL_CLOCK = config_value;
+		pgc->plcm->params->dsi.PLL_CLOCK = config_value;
 	} else if (!strcmp(name, "PM_SSC")) {
 		data_config->dispif_config.dsi.ssc_range = config_value;
 	}
@@ -9367,7 +9398,7 @@ int display_enter_tui(void)
 	display_vsync_switch_to_dsi(1);
 	mmprofile_log_ex(ddp_mmp_get_events()->tui,
 		MMPROFILE_FLAG_PULSE, 0, 1);
-	_cmdq_flush_config_handle(1, NULL, 0);
+
 	_primary_path_unlock(__func__);
 	return 0;
 

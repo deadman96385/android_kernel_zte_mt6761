@@ -50,6 +50,9 @@ extern void rtc_disable_writeif(void);
 extern void rtc_mark_recovery(void);
 extern void rtc_mark_kpoc(void);
 extern void rtc_mark_fast(void);
+/*zte add for meta start*/
+extern void rtc_mark_meta(void);
+/*zte add for meta end*/
 extern u16 rtc_rdwr_uart_bits(u16 *val);
 extern void rtc_bbpu_power_down(void);
 extern void rtc_read_pwron_alarm(struct rtc_wkalrm *alm);

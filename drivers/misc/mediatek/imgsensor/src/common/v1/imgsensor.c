@@ -1073,6 +1073,7 @@ static inline int adopt_CAMERA_HW_GetInfo2(void *pBuf)
 				pSensorGetInfo->SensorId,
 				psensor->inst.psensor_name);
 
+#ifndef CONFIG_ZTE_CAMERA_INFO_INQUIRE
 	pmtk_ccm_name = strchr(mtk_ccm_name, '\0');
 	snprintf(pmtk_ccm_name,
 		camera_info_size - (int)(pmtk_ccm_name - mtk_ccm_name),
@@ -1149,6 +1150,7 @@ static inline int adopt_CAMERA_HW_GetInfo2(void *pBuf)
 		camera_info_size - (int)(pmtk_ccm_name - mtk_ccm_name),
 		"\nHDR_Support(0:NO HDR,1: iHDR,2:mvHDR,3:zHDR)=%2d",
 		pSensorInfo->HDR_Support);
+#endif
 
 	/* Resolution */
 	if (copy_to_user(

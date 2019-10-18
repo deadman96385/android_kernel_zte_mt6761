@@ -464,9 +464,10 @@ struct thermal_cooling_device *cdev, unsigned long state)
 		pr_debug("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
 
 		/* To trigger data abort to reset the system
-		 * for thermal protection.
+		 * for thermal protection. But ZTE modify, let
+		 * battery module do the batt-rst work only
 		 */
-		BUG();
+		/*BUG();*/
 	}
 	return 0;
 }

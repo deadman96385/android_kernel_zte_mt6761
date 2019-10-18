@@ -34,8 +34,8 @@ struct alspshub_ipi_data {
 	atomic_t	scp_init_done;
 
 	/*data */
-	u16		als;
-	u8		ps;
+	u16		als[4];
+	u16		ps;
 	int		ps_cali;
 	atomic_t	als_cali;
 	atomic_t	ps_thd_val_high;
@@ -46,6 +46,12 @@ struct alspshub_ipi_data {
 	bool ps_factory_enable;
 	bool als_android_enable;
 	bool ps_android_enable;
+	int ps_calibration_valid; /* ps factory calibration result. 1 success, 0 failed*/
+	int ps_calibration_cct; /* ps factory calibration cct */
+	int als_calibration_factor; /* als factory calibration factor N*1000 */
+	int als_calibration_valid; /* als factory calibration result. 1 success, 0 failed */
+	struct completion ps_calibration_done;
+	struct completion als_calibration_done;
 	struct wakeup_source ps_wake_lock;
 };
 
@@ -80,7 +86,7 @@ enum {
 	CMC_TRC_DEBUG = 0x8000,
 } CMC_TRC;
 
-long alspshub_read_ps(u8 *ps)
+long alspshub_read_ps(u16 *ps)
 {
 	long res;
 	struct alspshub_ipi_data *obj = obj_ipi_data;
@@ -112,7 +118,10 @@ long alspshub_read_als(u16 *als)
 			ID_LIGHT);
 		return -1;
 	}
-	*als = data_t.light;
+	als[0] = data_t.data[0];
+	als[1] = data_t.data[1];
+	als[2] = data_t.data[2];
+	als[3] = data_t.data[3];
 
 	return 0;
 }
@@ -168,11 +177,11 @@ static ssize_t alspshub_show_als(struct device_driver *ddri, char *buf)
 		pr_err("obj_ipi_data is null!!\n");
 		return 0;
 	}
-	res = alspshub_read_als(&obj->als);
+	res = alspshub_read_als(obj->als);
 	if (res)
 		return snprintf(buf, PAGE_SIZE, "ERROR: %d\n", res);
 	else
-		return snprintf(buf, PAGE_SIZE, "0x%04X\n", obj->als);
+		return snprintf(buf, PAGE_SIZE, "%d, %d, %d, %d\n", obj->als[0],obj->als[1],obj->als[2],obj->als[3]);
 }
 
 static ssize_t alspshub_show_ps(struct device_driver *ddri, char *buf)
@@ -188,7 +197,7 @@ static ssize_t alspshub_show_ps(struct device_driver *ddri, char *buf)
 	if (res)
 		return snprintf(buf, PAGE_SIZE, "ERROR: %d\n", (int)res);
 	else
-		return snprintf(buf, PAGE_SIZE, "0x%04X\n", obj->ps);
+		return snprintf(buf, PAGE_SIZE, "%d\n", obj->ps);
 }
 
 static ssize_t alspshub_show_reg(struct device_driver *ddri, char *buf)
@@ -340,7 +349,11 @@ static int ps_recv_data(struct data_unit_t *event, void *reserved)
 		spin_lock(&calibration_lock);
 		atomic_set(&obj->ps_thd_val_high, event->data[0]);
 		atomic_set(&obj->ps_thd_val_low, event->data[1]);
+		obj->ps_calibration_cct = event->data[0];
+		obj->ps_calibration_valid = event->data[1];
 		spin_unlock(&calibration_lock);
+		pr_debug("ps_recv_data cali_action %d %d\n", obj->ps_calibration_cct, obj->ps_calibration_valid);
+		complete(&obj->ps_calibration_done);
 		err = ps_cali_report(event->data);
 	}
 	return err;
@@ -362,7 +375,11 @@ static int als_recv_data(struct data_unit_t *event, void *reserved)
 	else if (event->flush_action == CALI_ACTION) {
 		spin_lock(&calibration_lock);
 		atomic_set(&obj->als_cali, event->data[0]);
-		spin_unlock(&calibration_lock);
+		obj->als_calibration_factor = event->data[0];
+		obj->als_calibration_valid = event->data[1];
+		spin_unlock(&calibration_lock);	
+		pr_debug("als_recv_data cali_action %d %d\n", obj->als_calibration_factor, obj->als_calibration_valid);
+		complete(&obj->als_calibration_done);
 		err = als_cali_report(event->data);
 	}
 	return err;
@@ -448,12 +465,28 @@ static int alshub_factory_set_cali(int32_t offset)
 	als_cali_report(&cfg_data);
 
 	return err;
-
 }
 static int alshub_factory_get_cali(int32_t *offset)
 {
 	struct alspshub_ipi_data *obj = obj_ipi_data;
+	int err = 0, status = 0, factor = 0;
 
+	init_completion(&obj->als_calibration_done);
+	err = wait_for_completion_timeout(&obj->als_calibration_done, msecs_to_jiffies(3000));
+	if (!err) {
+		pr_err("alshub_factory_get_cali fail!\n");
+		err = -1;
+		return err;
+	}
+
+	factor = obj->als_calibration_factor;
+	status = obj->als_calibration_valid;
+	pr_debug("alshub_factory_get_cali factor %d valid %d\n", factor, status);
+	if (status != 1) {
+		pr_err("alshub_factory_get_cali failed! als factor error!\n");
+		err = -1;
+		return err;
+	}
 	*offset = atomic_read(&obj->als_cali);
 	return 0;
 }
@@ -536,6 +569,24 @@ static int pshub_factory_set_cali(int32_t offset)
 static int pshub_factory_get_cali(int32_t *offset)
 {
 	struct alspshub_ipi_data *obj = obj_ipi_data;
+	int err = 0, status = 0, cct = 0;
+
+	init_completion(&obj->ps_calibration_done);
+	err = wait_for_completion_timeout(&obj->ps_calibration_done, msecs_to_jiffies(3000));
+	if (!err) {
+		pr_err("pshub_factory_get_cali fail!\n");
+		err = -1;
+		return err;
+	}
+
+	cct = obj->ps_calibration_cct;
+	status = obj->ps_calibration_valid;
+	pr_debug("pshub_factory_get_cali cct %d valid %d\n", cct, status);
+	if (status != 1) {
+		pr_err("pshub_factory_get_cali failed! ps raw data too big!\n");
+		err = -1;
+		return err;
+	}
 
 	*offset = obj->ps_cali;
 	return 0;
@@ -898,6 +949,8 @@ static int alspshub_probe(struct platform_device *pdev)
 	WRITE_ONCE(obj->als_android_enable, false);
 	WRITE_ONCE(obj->ps_factory_enable, false);
 	WRITE_ONCE(obj->ps_android_enable, false);
+	init_completion(&obj->ps_calibration_done);
+	init_completion(&obj->als_calibration_done);
 
 	clear_bit(CMC_BIT_ALS, &obj->enable);
 	clear_bit(CMC_BIT_PS, &obj->enable);
