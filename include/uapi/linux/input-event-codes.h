@@ -267,10 +267,10 @@
 #define KEY_F17			187
 #define KEY_F18			188
 #define KEY_F19			189
-#define KEY_F20			190
-#define KEY_F21			191
-#define KEY_F22			192
-#define KEY_F23			193
+#define KEY_F20			190	/* SC sar CS0  */
+#define KEY_F21			191	/* SC sar CS1 */
+#define KEY_F22			192	/* SC sar CS2 */
+#define KEY_F23			193	/* SC sar CS3 */
 #define KEY_F24			194
 
 #define KEY_PLAYCD		200
@@ -641,6 +641,22 @@
  * e.g. teletext or data broadcast application (MHEG, MHP, HbbTV, etc.)
  */
 #define KEY_DATA			0x277
+
+#define KEY_GESTURE_DOUBLEC		0x2a0
+#define KEY_GESTURE_L			0x2a1
+#define KEY_GESTURE_DOWN		0x2a2
+#define KEY_GESTURE_U			0x2a3
+#define KEY_GESTURE_UP			0x2a4
+#define KEY_GESTURE_C			0x2a5
+#define KEY_GESTURE_E			0x2a6
+#define KEY_GESTURE_M			0x2a7
+#define KEY_GESTURE_LEFT		0x2a8
+#define KEY_GESTURE_RIGHT		0x2a9
+#define KEY_GESTURE_S			0x2aa
+#define KEY_GESTURE_W			0x2ab
+#define KEY_GESTURE_V			0x2ac
+#define KEY_GESTURE_O			0x2ad
+#define KEY_GESTURE_Z			0x2ae
 
 #define BTN_TRIGGER_HAPPY		0x2c0
 #define BTN_TRIGGER_HAPPY1		0x2c0

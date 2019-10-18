@@ -93,3 +93,10 @@ config SECURITY_SELINUX_CHECKREQPROT_VALUE
 	  via /selinux/checkreqprot if authorized by policy.
 
 	  If you are unsure how to answer this question, answer 0.
+# Preproc/postproc policy as binary image
+config SECURITY_SELINUX_POLICYPROC
+	bool "NSA SELinux policy preprocess/postprocess"
+	depends on SECURITY_SELINUX
+	default y
+	help
+	  This option preprocesses/postprocesses policy as binary image.

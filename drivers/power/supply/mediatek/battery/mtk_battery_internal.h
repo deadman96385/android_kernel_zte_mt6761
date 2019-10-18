@@ -799,6 +799,9 @@ struct mtk_battery {
 	struct battery_temperature_table rbat;
 
 	struct fgd_cmd_param_t_custom fg_data;
+
+	/* add by zte 10172188 */
+	int car_backup;
 };
 
 

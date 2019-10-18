@@ -509,6 +509,8 @@ static struct usb_request *mtp_request_new(struct usb_ep *ep, int buffer_size)
 	/* now allocate buffers for the requests */
 #if defined(CONFIG_64BIT) && defined(CONFIG_MTK_LM_MODE)
 	req->buf = kmalloc(buffer_size, GFP_KERNEL | GFP_DMA);
+#elif defined(IS_BUILD_USERDEBUG) && defined(CONFIG_ZTE_USB_TEST)
+	req->buf = kmalloc(buffer_size, GFP_KERNEL | __GFP_REPEAT | __GFP_NOFAIL);
 #else
 	req->buf = kmalloc(buffer_size, GFP_KERNEL);
 #endif

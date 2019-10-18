@@ -3274,8 +3274,12 @@ static int mem_cgroup_swappiness_write(struct cgroup_subsys_state *css,
 				       struct cftype *cft, u64 val)
 {
 	struct mem_cgroup *memcg = mem_cgroup_from_css(css);
-
-	if (val > 100)
+	/*
+	 * Modify max available swappiness value from 100 to 200. Because
+	 * ome low ram device need larger value, e.g.150, to recycle
+	 * anon-pages in a high priority.
+	 */
+	if (val > 200)
 		return -EINVAL;
 
 	if (css->parent)

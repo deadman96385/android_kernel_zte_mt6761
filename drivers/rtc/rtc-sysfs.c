@@ -217,7 +217,41 @@ wakealarm_store(struct device *dev, struct device_attribute *attr,
 	return (retval < 0) ? retval : n;
 }
 static DEVICE_ATTR_RW(wakealarm);
+#ifdef CONFIG_ZTE_ADD_DIS_RTC_SYSFS
+/* dis_rtc+ */
+bool mtk_disable_rtc = false;
+extern void hal_rtc_dis_alarm(void);
+static ssize_t dis_rtc_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	ssize_t retval;
 
+	retval = snprintf(buf, 15,  "rtc disable?%d\n", mtk_disable_rtc);
+
+	return retval;
+}
+
+static ssize_t
+dis_rtc_store(struct device *dev, struct device_attribute *attr,
+	     const char *buf, size_t n)
+{
+	ssize_t retval;
+	long offset;
+
+	retval = kstrtol(buf, 10, &offset);
+	if (offset == 1) {
+		mtk_disable_rtc = true;
+		hal_rtc_dis_alarm();
+	}
+
+	if (offset == 0) {
+		mtk_disable_rtc = false;
+	}
+
+	return (retval < 0) ? retval : n;
+}
+static DEVICE_ATTR_RW(dis_rtc);
+/* dis_rtc- */
+#endif
 static ssize_t
 offset_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -255,6 +289,9 @@ static struct attribute *rtc_attrs[] = {
 	&dev_attr_hctosys.attr,
 	&dev_attr_wakealarm.attr,
 	&dev_attr_offset.attr,
+#ifdef CONFIG_ZTE_ADD_DIS_RTC_SYSFS
+	&dev_attr_dis_rtc.attr,
+#endif
 	NULL,
 };
 

@@ -317,6 +317,9 @@ struct fsg_common {
 
 	struct kref		ref;
 	u8 bicr;
+
+	/* SUA, for cdrom function switch by scsi command */
+	struct device   *device;
 };
 
 struct fsg_dev {
@@ -335,6 +338,12 @@ struct fsg_dev {
 	struct usb_ep		*bulk_in;
 	struct usb_ep		*bulk_out;
 };
+
+#if defined(CONFIG_USB_MAC)
+static int scsi_build_toc_format0(u8 *buf, int msf, int start_track, struct fsg_lun *curlun);
+static int scsi_build_toc_format1(u8 *buf, int msf, int start_track, struct fsg_lun *curlun);
+static int scsi_build_toc_format2(u8 *buf, int msf, struct fsg_lun *curlun);
+#endif
 
 static inline int __fsg_is_set(struct fsg_common *common,
 			       const char *func, unsigned line)
@@ -851,7 +860,13 @@ static int do_write(struct fsg_common *common)
 			curlun->sense_data = SS_INVALID_FIELD_IN_CDB;
 			return -EINVAL;
 		}
+
+		#if defined(CONFIG_USB_MAC)
+		if (common->cmnd[1] & 0x08) {	/* FUA */
+		#else
 		if (!curlun->nofua && (common->cmnd[1] & 0x08)) { /* FUA */
+		#endif
+
 			spin_lock(&curlun->filp->f_lock);
 			curlun->filp->f_flags |= O_SYNC;
 			spin_unlock(&curlun->filp->f_lock);
@@ -1135,6 +1150,100 @@ static int do_verify(struct fsg_common *common)
 
 /*-------------------------------------------------------------------------*/
 
+#if defined(CONFIG_USB_MAC)
+struct ms_get_configration_data_header_type {
+	u32 data_length;
+	u16 reserve;
+	u16 current_profile;
+} __packed;
+
+struct ms_get_configration_data_feature_type {
+	u16 feature_code;
+	u8 length;
+	const u8 *data;
+} __packed;
+
+static int do_get_configuration(struct fsg_common *common, struct fsg_buffhd *bh)
+{
+	static  u8 feature_0000[] = { 0x00, 0x00, 0x03, 0x04, 0x00, 0x08, 0x00, 0x00 }; /* Profile list:CDROM */
+	static  u8 feature_0001[] = { 0x00, 0x01, 0x03, 0x04, 0x00, 0x00, 0x00, 0x02 }; /* Core */
+	static  u8 feature_0002[] = { 0x00, 0x02, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00 };
+	static  u8 feature_0003[] = { 0x00, 0x03, 0x03, 0x04, 0x29, 0x00, 0x00, 0x00 }; /* Removable media */
+	static  u8 feature_0010[] = { 0x00, 0x10, 0x00, 0x08, 0x00, 0x00, 0x08, 0x00,
+								  0x00, 0x01, 0x01, 0x00 };
+	static  u8 feature_001d[] = { 0x00, 0x1d, 0x00, 0x00 };
+	static  u8 feature_0100[] = { 0x01, 0x00, 0x03, 0x00 }; /* Power management */
+	static  u8 feature_0104[] = { 0x01, 0x04, 0x03, 0x00 };
+	static  u8 feature_0105[] = { 0x01, 0x05, 0x03, 0x00 }; /* Timeout */
+	static  u8 feature_0108[] = { 0x01, 0x08, 0x03, 0x00 }; /* Logic unit serial number */
+	static struct ms_get_configration_data_feature_type feature_list[] = {
+		{ 0x0000, 8, feature_0000 },
+		{ 0x0001, 8, feature_0001 },
+		{ 0x0002, 8, feature_0002 },
+		{ 0x0003, 8, feature_0003 },
+		{ 0x0010, 12, feature_0010 },
+		{ 0x001d, 4, feature_001d },
+		{ 0x0100, 4, feature_0100 },
+		{ 0x0104, 4, feature_0104 },
+		{ 0x0105, 4, feature_0105 },
+		{ 0x0108, 4, feature_0108 }
+	};
+	unsigned int reply_len;
+	u8 i = 0;
+	bool feature_is_found = 0;
+	int starting_feature_num = get_unaligned_be16(&common->cmnd[2]);
+	u8 rt_field = common->cmnd[1] & 0x03;
+	u8 *buffer = (u8 *)bh->buf;
+	u8 *current_ptr;
+	struct ms_get_configration_data_header_type *header_data_ptr =
+		(struct ms_get_configration_data_header_type *)buffer;
+
+	/* first init feature head */
+	memset((void *)header_data_ptr, 0, sizeof(struct ms_get_configration_data_header_type));
+	header_data_ptr->data_length = 4;
+	/* profile 0x0800 is quite important to cdrom utitil on ubuntu */
+	header_data_ptr->current_profile = 0x0800;
+
+	current_ptr = buffer + sizeof(struct ms_get_configration_data_header_type);
+
+	if ((rt_field == 0) && (starting_feature_num == 0))	{
+		/* fill all features */
+		for (i = 0; i < ARRAY_SIZE(feature_list); i++) {
+			memcpy(current_ptr, feature_list[i].data, feature_list[i].length);
+			current_ptr = current_ptr + feature_list[i].length;
+			header_data_ptr->data_length += feature_list[i].length;
+		}
+
+		if (common->data_size_from_cmnd > header_data_ptr->data_length + 20) /* any value */
+			feature_is_found = 0;
+		else
+			feature_is_found = 1;
+	} else {
+		/* finding matching features */
+		for (i = 0; i < ARRAY_SIZE(feature_list); i++) {
+			if (feature_list[i].feature_code == starting_feature_num) {
+				feature_is_found = 1;
+				break;
+			}
+		}
+
+		/* when find  features */
+		if (feature_is_found) {
+			memcpy(current_ptr, feature_list[i].data, feature_list[i].length);
+			header_data_ptr->data_length += feature_list[i].length;
+		}
+	}
+
+	/* calc data length */
+	reply_len = header_data_ptr->data_length + 4;
+	header_data_ptr->data_length = get_unaligned_be32(header_data_ptr);
+	if (common->data_size_from_cmnd < reply_len) {
+		reply_len = common->data_size_from_cmnd;
+	}
+	return reply_len;
+}
+#endif
+
 static int do_inquiry(struct fsg_common *common, struct fsg_buffhd *bh)
 {
 	struct fsg_lun *curlun = common->curlun;
@@ -1259,6 +1368,251 @@ static int do_read_header(struct fsg_common *common, struct fsg_buffhd *bh)
 	return 8;
 }
 
+#ifdef CONFIG_USB_MAC
+#define SCSI_FLAG_SESSION_LEAD_OUT    0xAA
+#define SCSI_FLAG_TOC_MASK_FORMAT     0xC0
+
+/******************************
+ scsi response data type
+******************************/
+struct ms_read_toc_data_header_type {
+	u16 data_length;
+	u8 first_track_num;
+	u8 last_track_num;
+} __packed;
+
+struct ms_read_toc_data_track0_type {
+	u8 reserve;
+	u8 addr_control;
+	u8 track_number;
+	u8 reserve0;
+	u32 track_start_address;
+} __packed;
+
+struct ms_read_toc_data_track2_type {
+	u8 session_number;
+	u8 addr_control;
+	u8 tno;
+	u8 point;
+	u8 min;
+	u8 sec;
+	u8 frame;
+	u8 zero;
+	u8 pmin;
+	u8 psec;
+	u8 pframe;
+} __packed;
+
+static u32 ms_scsi_lba_to_msf(u32 lba)
+{
+	u8 m, s, f;
+	u32 msf_value = 0;
+
+	m = lba / (60*75);
+	s = lba/75 - m*60 + 2;
+	f = lba - m*60*75 - (s-2)*75;
+
+	msf_value = (f << 16) | (s << 8) | m;
+
+	return get_unaligned_be32((u8 *)&msf_value);
+}
+
+static int scsi_build_toc_format0(u8 *buf, int msf, int start_track, struct fsg_lun *curlun)
+{
+	int length = 0;
+	struct ms_read_toc_data_header_type *toc_data_header_ptr;
+	struct ms_read_toc_data_track0_type *toc_msf_data_track0_ptr;
+	/*printk("scsi_build_toc_format0\n"); */
+
+	toc_data_header_ptr = (struct ms_read_toc_data_header_type *)buf;
+	toc_data_header_ptr->first_track_num = 1; /* First track number */
+	toc_data_header_ptr->last_track_num = 1; /* Last track number */
+
+	toc_data_header_ptr->data_length = 2 +
+		sizeof(struct ms_read_toc_data_track0_type); /* TOC data length*/
+	length = sizeof(struct ms_read_toc_data_header_type) +
+		sizeof(struct ms_read_toc_data_track0_type);
+
+	if (start_track != SCSI_FLAG_SESSION_LEAD_OUT) {
+		toc_data_header_ptr->data_length += sizeof(struct ms_read_toc_data_track0_type);
+		length += sizeof(struct ms_read_toc_data_track0_type);
+	}
+	toc_data_header_ptr->data_length = get_unaligned_be16((u8 *)&toc_data_header_ptr->data_length);
+
+	toc_msf_data_track0_ptr = (struct ms_read_toc_data_track0_type *)(buf +
+		sizeof(struct ms_read_toc_data_header_type));
+	memset((void *)toc_msf_data_track0_ptr, 0, sizeof(struct ms_read_toc_data_track0_type));
+
+	if (start_track != SCSI_FLAG_SESSION_LEAD_OUT) {
+		toc_msf_data_track0_ptr->addr_control = 0x14; /* Data track, copying allowed, 0x16 */
+		toc_msf_data_track0_ptr->track_number = 1;   /* Only track is number 1 */
+
+		if (msf) {
+			toc_msf_data_track0_ptr->track_start_address = ms_scsi_lba_to_msf(0);
+		}
+		/* next track info */
+		toc_msf_data_track0_ptr = (struct ms_read_toc_data_track0_type *)(buf +
+			sizeof(struct ms_read_toc_data_header_type) +
+			sizeof(struct ms_read_toc_data_track0_type));
+		memset((void *)toc_msf_data_track0_ptr, 0, sizeof(struct ms_read_toc_data_track0_type));
+	}
+
+	toc_msf_data_track0_ptr->addr_control = 0x14;  /* Lead-out track number, 0x16 */
+	toc_msf_data_track0_ptr->track_number = 0xaa;  /* Lead-out track number */
+	if (msf) {
+		toc_msf_data_track0_ptr->track_start_address =
+			ms_scsi_lba_to_msf(curlun->num_sectors);
+	} else {
+		toc_msf_data_track0_ptr->track_start_address = curlun->num_sectors;
+		toc_msf_data_track0_ptr->track_start_address =
+			get_unaligned_be32((u8 *)&toc_msf_data_track0_ptr->track_start_address);
+	}
+	return length;
+}
+
+static int scsi_build_toc_format1(u8 *buf, int msf, int start_track, struct fsg_lun *curlun)
+{
+	int  length = 0;
+	struct ms_read_toc_data_header_type *toc_data_header_ptr;
+	struct ms_read_toc_data_track0_type *toc_msf_data_track0_ptr;
+	/*printk("scsi_build_toc_format1\n"); */
+
+	toc_data_header_ptr = (struct ms_read_toc_data_header_type *)buf;
+	toc_data_header_ptr->first_track_num = 1;
+	toc_data_header_ptr->last_track_num = 1;
+
+	toc_data_header_ptr->data_length = 2 +
+		sizeof(struct ms_read_toc_data_track0_type);
+	length = sizeof(struct ms_read_toc_data_header_type) +
+		sizeof(struct ms_read_toc_data_track0_type);
+	toc_data_header_ptr->data_length =
+		get_unaligned_be16((u8 *)&toc_data_header_ptr->data_length);
+
+	toc_msf_data_track0_ptr = (struct ms_read_toc_data_track0_type *)(buf +
+		sizeof(struct ms_read_toc_data_header_type));
+	memset((void *)toc_msf_data_track0_ptr, 0, sizeof(struct ms_read_toc_data_track0_type));
+
+	toc_msf_data_track0_ptr->addr_control = 0x14;
+	toc_msf_data_track0_ptr->track_number = 1;
+
+	if (msf) {
+		toc_msf_data_track0_ptr->track_start_address =  ms_scsi_lba_to_msf(0);
+	}
+	return length;
+}
+
+static int scsi_build_toc_format2(u8 *buf, int msf, struct fsg_lun *curlun)
+{
+	int  length = 0;
+	u32 lba = curlun->num_sectors;
+	struct ms_read_toc_data_header_type *toc_data_header_ptr;
+	struct ms_read_toc_data_track2_type *toc_msf_data_track2_ptr;
+	/*printk(" scsi_build_toc_format2\n"); */
+
+	toc_data_header_ptr = (struct ms_read_toc_data_header_type *)buf;
+	toc_data_header_ptr->data_length = 46;
+	toc_data_header_ptr->data_length = get_unaligned_be16((u8 *)&toc_data_header_ptr->data_length);
+
+	toc_msf_data_track2_ptr = (struct ms_read_toc_data_track2_type *)(buf +
+		sizeof(struct ms_read_toc_data_header_type));
+	memset((void *)toc_msf_data_track2_ptr, 0, sizeof(struct ms_read_toc_data_track2_type));
+	toc_msf_data_track2_ptr->session_number = 1;
+	toc_msf_data_track2_ptr->addr_control = 0x14;
+	toc_msf_data_track2_ptr->point = 0xa0;
+	toc_msf_data_track2_ptr->pmin = 1;
+	toc_msf_data_track2_ptr->psec = 0;
+	toc_msf_data_track2_ptr->pframe = 0;
+
+	toc_msf_data_track2_ptr = (struct ms_read_toc_data_track2_type *)(buf +
+		sizeof(struct ms_read_toc_data_header_type) +
+		sizeof(struct ms_read_toc_data_track2_type));
+	memset((void *)toc_msf_data_track2_ptr, 0, sizeof(struct ms_read_toc_data_track2_type));
+	toc_msf_data_track2_ptr->session_number = 1;
+	toc_msf_data_track2_ptr->addr_control = 0x14;
+	toc_msf_data_track2_ptr->point = 0xa1;
+	toc_msf_data_track2_ptr->pmin = 1;
+	toc_msf_data_track2_ptr->psec = 0;
+	toc_msf_data_track2_ptr->pframe = 0;
+
+	toc_msf_data_track2_ptr = (struct ms_read_toc_data_track2_type *)(buf +
+		sizeof(struct ms_read_toc_data_header_type) +
+		2*sizeof(struct ms_read_toc_data_track2_type));
+	memset((void *)toc_msf_data_track2_ptr, 0, sizeof(struct ms_read_toc_data_track2_type));
+	toc_msf_data_track2_ptr->session_number = 1;
+	toc_msf_data_track2_ptr->addr_control = 0x14;
+	toc_msf_data_track2_ptr->point = 0xa2;
+
+	toc_msf_data_track2_ptr->pmin = (u8)(lba/(60*75));
+	toc_msf_data_track2_ptr->psec = (u8)(lba/75-toc_msf_data_track2_ptr->pmin*60) + 2;
+	toc_msf_data_track2_ptr->pframe = (u8)(lba-toc_msf_data_track2_ptr->pmin*60*75 -
+										(toc_msf_data_track2_ptr->psec-2)*75);
+
+	toc_msf_data_track2_ptr =
+		(struct ms_read_toc_data_track2_type *)(buf +
+			sizeof(struct ms_read_toc_data_header_type) +
+			3*sizeof(struct ms_read_toc_data_track2_type));
+	memset((void *)toc_msf_data_track2_ptr, 0, sizeof(struct ms_read_toc_data_track2_type));
+	toc_msf_data_track2_ptr->session_number = 1;
+	toc_msf_data_track2_ptr->addr_control = 0x14;
+	toc_msf_data_track2_ptr->point = 0x01;
+	toc_msf_data_track2_ptr->pmin = 0;
+	toc_msf_data_track2_ptr->psec = 2;
+	toc_msf_data_track2_ptr->pframe = 0;
+
+	length = sizeof(struct ms_read_toc_data_header_type) + 4*sizeof(struct ms_read_toc_data_track2_type);
+	return length;
+}
+
+
+static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
+{
+	struct fsg_lun	*curlun = common->curlun;
+	int		msf = common->cmnd[1] & 0x02;
+	int		start_track = common->cmnd[6];
+	u8		*buf = (u8 *)bh->buf;
+
+	u8		format = common->cmnd[2] & 0xf;
+	u8		control = common->cmnd[9];
+	u8		reply_size = 0;
+
+
+	if ((common->cmnd[1] & ~0x02) != 0 ||	/* Mask away MSF */
+			start_track > 1) {
+		curlun->sense_data = SS_INVALID_FIELD_IN_CDB;
+		return -EINVAL;
+	}
+
+	switch (format) {
+	case 0:
+	{
+		if ((control & SCSI_FLAG_TOC_MASK_FORMAT) == 0) {
+			reply_size = scsi_build_toc_format0(buf, msf, start_track, curlun);
+		} else if ((control & SCSI_FLAG_TOC_MASK_FORMAT) == 0x40) {
+			/* linux used */
+			reply_size = scsi_build_toc_format1(buf, msf, start_track, curlun);
+		} else {
+			/* mac os used */
+			reply_size = scsi_build_toc_format2(buf, msf, curlun);
+		}
+		break;
+	}
+
+	case 1:
+	{
+		reply_size = scsi_build_toc_format1(buf, msf, start_track, curlun);
+		break;
+	}
+
+	default:
+	{
+		reply_size = scsi_build_toc_format2(buf, msf, curlun);
+		break;
+	}
+	}
+
+	return reply_size;
+}
+#else
 static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
 {
 	struct fsg_lun	*curlun = common->curlun;
@@ -1285,6 +1639,7 @@ static int do_read_toc(struct fsg_common *common, struct fsg_buffhd *bh)
 	store_cdrom_address(&buf[16], msf, curlun->num_sectors);
 	return 20;
 }
+#endif
 
 static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 {
@@ -1322,7 +1677,13 @@ static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 		buf += 4;
 		limit = 255;
 	} else {			/* MODE_SENSE_10 */
+
+#if defined(CONFIG_USB_MAC)
+		buf[3] = 0x00;		/* WP, DPOFUA */
+#else
 		buf[3] = (curlun->ro ? 0x80 : 0x00);		/* WP, DPOFUA */
+#endif
+
 		buf += 8;
 		limit = 65535;		/* Should really be FSG_BUFLEN */
 	}
@@ -1333,6 +1694,10 @@ static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 	 * The mode pages, in numerical order.  The only page we support
 	 * is the Caching page.
 	 */
+
+#if defined(CONFIG_USB_MAC)
+	valid_page = 1;
+#else
 	if (page_code == 0x08 || all_pages) {
 		valid_page = 1;
 		buf[0] = 0x08;		/* Page code */
@@ -1353,6 +1718,7 @@ static int do_mode_sense(struct fsg_common *common, struct fsg_buffhd *bh)
 		}
 		buf += 12;
 	}
+#endif
 
 	/*
 	 * Check that a valid page was requested and the mode data length
@@ -1735,6 +2101,24 @@ static int send_status(struct fsg_common *common)
 		return -EIO;
 
 	common->next_buffhd_to_fill = bh->next;
+
+#ifdef ZTE_MAC_STORAGE
+#ifdef CONFIG_MTK_ICUSB_SUPPORT
+#define ICUSB_FSYNC_MAGIC_TIME 2
+	if (curlun->filp && curlun->isICUSB) {
+		struct timeval tv_before, tv_after;
+
+		do_gettimeofday(&tv_before);
+		vfs_fsync(curlun->filp, 1);
+		do_gettimeofday(&tv_after);
+		if ((tv_after.tv_sec - tv_before.tv_sec) >= ICUSB_FSYNC_MAGIC_TIME) {
+			pr_info("time spent more than %d sec, sec : %d, usec : %d\n", ICUSB_FSYNC_MAGIC_TIME,
+			(unsigned int)(tv_after.tv_sec - tv_before.tv_sec),
+			(unsigned int)(tv_after.tv_usec - tv_before.tv_usec));
+		}
+	}
+#endif
+#endif
 	return 0;
 }
 
@@ -1884,6 +2268,49 @@ static int check_command_size_in_blocks(struct fsg_common *common,
 			mask, needs_medium, name);
 }
 
+/* SUA, for cdrom function switch by scsi command */
+extern struct device *create_function_device(char *name);
+#define CDROM_SWITCH_STRING_LENGTH_MAX 32
+
+int scsicmd_keep_cdrom(struct fsg_common *common, int enable)
+{
+	char cdrom_switch_string[CDROM_SWITCH_STRING_LENGTH_MAX];
+	char *envp[2] = { cdrom_switch_string, NULL };
+
+	if (common == NULL || common->device == NULL) {
+		return -EINVAL;
+	}
+
+	snprintf(cdrom_switch_string, CDROM_SWITCH_STRING_LENGTH_MAX,
+		"KEEP_CDROM=%s", enable ? "ON" : "OFF");
+
+	DBG(common, "keep cdrom: %d\n", enable);
+	kobject_uevent_env(&common->device->kobj, KOBJ_CHANGE, envp);
+	return 0;
+}
+
+static int do_usb_cdrom_switch(struct fsg_common *common)
+{
+	int ret = 0;
+
+	/* ascii 0x7a('z') 0x74('t') 0x65('e') */
+	if ((common->cmnd[1] == 0x7a) && (common->cmnd[2] == 0x74) && (common->cmnd[3] == 0x65)) {
+		switch (common->cmnd[5]) {
+		case 0x20:
+			ret = scsicmd_keep_cdrom(common, 0);
+			break;
+		case 0x21:
+			ret = scsicmd_keep_cdrom(common, 1);
+			break;
+		default:
+			DBG(common, "unknown command...(0x%2.2X)\n", common->cmnd[5]);
+			break;
+		}
+	}
+	return ret;
+}
+/* end */
+
 static int do_scsi_command(struct fsg_common *common)
 {
 	struct fsg_buffhd	*bh;
@@ -2025,12 +2452,23 @@ static int do_scsi_command(struct fsg_common *common)
 		break;
 
 	case READ_TOC:
+
+#if defined(CONFIG_USB_MAC)
+#else
 		if (!common->curlun || !common->curlun->cdrom)
 			goto unknown_cmnd;
+#endif
+
 		common->data_size_from_cmnd =
 			get_unaligned_be16(&common->cmnd[7]);
 		reply = check_command(common, 10, DATA_DIR_TO_HOST,
+#if defined(CONFIG_USB_MAC)
+				      (0xf<<6) | (3<<1), 1,
+#elif defined ZTE_MAC_STORAGE
+				      (0xf<<6) | (1<<1), 1,
+#else
 				      (7<<6) | (1<<1), 1,
+#endif
 				      "READ TOC");
 		if (reply == 0)
 			reply = do_read_toc(common, bh);
@@ -2126,6 +2564,26 @@ static int do_scsi_command(struct fsg_common *common)
 			reply = do_write(common);
 		break;
 
+#if defined(CONFIG_USB_MAC)
+	/* OEM extended scsi commands */
+	case SC_GET_CONFIGRATION:
+		common->data_size_from_cmnd = get_unaligned_be16(&common->cmnd[7]);
+		reply = check_command(common, 10, DATA_DIR_TO_HOST,
+					(3<<2)|(3<<7)|(1<<1), 0, "GET CONFIGURATION");
+		if (reply == 0)
+			reply = do_get_configuration(common, bh);
+		break;
+#endif
+#ifdef ZTE_MAC_STORAGE
+	case REZERO_UNIT:
+		pr_info("Get REZERO_UNIT command = %x\r\n", common->cmnd[1]);
+		break;
+#endif
+	/* SUA, for cdrom function switch by scsi command */
+	case SC_USB_FUNCTION_SWITCH:
+		reply = do_usb_cdrom_switch(common);
+		break;
+	/* end */
 	/*
 	 * Some mandatory commands that we recognize but don't implement.
 	 * They don't mean much in this setting.  It's left as an exercise
@@ -2782,6 +3240,9 @@ static struct fsg_common *fsg_common_setup(struct fsg_common *common)
 	common->state = FSG_STATE_TERMINATED;
 	memset(common->luns, 0, sizeof(common->luns));
 
+	/* SUA, for cdrom function switch by scsi command */
+	common->device = create_function_device("f_mass_storage");
+	/* end */
 	return common;
 }
 

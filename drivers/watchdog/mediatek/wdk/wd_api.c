@@ -687,6 +687,10 @@ void arch_reset(char mode, const char *cmd)
 		reboot = WD_SW_RESET_BYPASS_PWR_KEY;
 	} else if (cmd && !strcmp(cmd, "kpoc")) {
 		rtc_mark_kpoc();
+/*zte add for meta start*/
+	} else if (cmd && !strcmp(cmd, "meta")) {
+		rtc_mark_meta();
+/*zte add for meta end*/
 	} else {
 		reboot = WD_SW_RESET_BYPASS_PWR_KEY;
 	}

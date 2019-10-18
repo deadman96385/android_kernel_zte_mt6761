@@ -128,21 +128,21 @@ static const struct mtk_spi_compatible mt2712_compat = {
 };
 
 static const struct mtk_spi_compatible mt6758_compat = {
-	.need_pad_sel = true,
+	.need_pad_sel = false,
 	.enhance_timing = true,
 	.dma8g_peri_ext = true,
 	.must_tx = true,
 };
 
 static const struct mtk_spi_compatible mt6765_compat = {
-	.need_pad_sel = true,
+	.need_pad_sel = false,
 	.enhance_timing = true,
 	.dma8g_spi_ext = true,
 	.must_tx = true,
 };
 
 static const struct mtk_spi_compatible mt3967_compat = {
-	.need_pad_sel = true,
+	.need_pad_sel = false,
 	.enhance_timing = true,
 	.dma8g_spi_ext = true,
 	.must_tx = true,
@@ -663,6 +663,45 @@ static int mtk_spi_setup(struct spi_device *spi)
 	return 0;
 }
 
+#ifdef CONFIG_ZTE_TEE_SUPPORT
+#define SPI_ZTE_TEE_SUPPORT
+#endif
+#ifdef SPI_ZTE_TEE_SUPPORT
+#include <linux/semaphore.h>
+#include <linux/arm-smccc.h>
+#include <linux/tee_drv.h>
+
+#define OPTEE_MSG_FUNCID_CALLS_SPI_CLEAR_IRQ 0xFF05
+#define OPTEE_SMC_FUNCID_CALLS_SPI_CLEAR_IRQ	OPTEE_MSG_FUNCID_CALLS_SPI_CLEAR_IRQ
+#define OPTEE_SMC_CALLS_SPI_CLEAR_IRQ \
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL, ARM_SMCCC_SMC_32, \
+			   ARM_SMCCC_OWNER_TRUSTED_OS_END, \
+			   OPTEE_SMC_FUNCID_CALLS_SPI_CLEAR_IRQ)
+
+extern struct semaphore	irq_sem;
+
+static u32 spi_reset_irq(void);
+
+static u32 spi_reset_irq(void)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(OPTEE_SMC_CALLS_SPI_CLEAR_IRQ, 0, 0, 0, 0, 0, 0, 0, &res);
+
+	return res.a0;
+}
+
+static irqreturn_t mtk_spi_interrupt(int irq, void *dev_id)
+{
+	u32 reg_val;
+
+	reg_val = spi_reset_irq();
+	up(&irq_sem);
+
+	return IRQ_HANDLED;
+}
+
+#else
 static irqreturn_t mtk_spi_interrupt(int irq, void *dev_id)
 {
 	u32 cmd, reg_val, cnt, remainder;
@@ -734,6 +773,7 @@ static irqreturn_t mtk_spi_interrupt(int irq, void *dev_id)
 
 	return IRQ_HANDLED;
 }
+#endif
 
 static int mtk_spi_probe(struct platform_device *pdev)
 {
@@ -870,6 +910,10 @@ static int mtk_spi_probe(struct platform_device *pdev)
 	}
 
 	pm_runtime_enable(&pdev->dev);
+
+#ifdef SPI_ZTE_TEE_SUPPORT
+	sema_init(&irq_sem, 0);
+#endif
 
 	ret = devm_spi_register_master(&pdev->dev, master);
 	if (ret) {

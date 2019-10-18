@@ -22,6 +22,9 @@ ifneq ($(CONFIG_FPGA_EARLY_PORTING),y)
 ifeq ($(CONFIG_MTK_PMIC_COMMON),y)
 ifeq ($(CONFIG_MTK_GAUGE_VERSION),30)
 	obj-y += battery/
+	obj-$(CONFIG_CHARGER_PMIC_VOTER) += pmic-voter.o
+	obj-$(CONFIG_CHARGE_ARBITRATE_SERVICE)	+= charge_arbitrate_service.o
+	obj-$(CONFIG_BATTERY_CAPACITY_LEARNING)	+= battery_capacity_learning.o
 endif
 endif
 endif
@@ -47,3 +50,4 @@ else
 	endif
 endif
 
+obj-y += zte_misc.o charger_policy_service.o

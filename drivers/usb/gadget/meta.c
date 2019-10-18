@@ -1288,7 +1288,8 @@ void enable_meta_vcom(int mode)
 	if (mode == 1) {
 		strncpy(serial_string, "", sizeof(serial_string) - 1);
 		device_desc.idVendor = 0x0e8d;
-		device_desc.idProduct = 0x2007;
+		/* device_desc.idProduct = 0x2007; */
+		device_desc.idProduct = 0x2000;
 		device_desc.bDeviceClass = 0x02;
 
 		/*ttyGS0*/

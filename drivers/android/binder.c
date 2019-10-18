@@ -71,6 +71,7 @@
 #include <linux/security.h>
 #include <linux/spinlock.h>
 #include <linux/ratelimit.h>
+#include <stdbool.h>
 
 #include <uapi/linux/android/binder.h>
 #include "binder_alloc.h"
@@ -175,6 +176,18 @@ BINDER_DEBUG_ENTRY(proc);
 #define FORBIDDEN_MMAP_FLAGS                (VM_WRITE)
 
 #define BINDER_SMALL_BUF_SIZE (PAGE_SIZE * 64)
+
+/**** ZSW_ADD FOR CPUFREEZER begin ****/
+
+#ifndef ZTE_FEATURE_CGROUP_FREEZER
+#define ZTE_FEATURE_CGROUP_FREEZER               false
+#endif
+
+#ifndef ZTE_FEATURE_CGROUP_FREEZER_V2
+#define ZTE_FEATURE_CGROUP_FREEZER_V2            false
+#endif
+/**** ZSW_ADD FOR CPUFREEZER end ****/
+
 
 enum {
 	BINDER_DEBUG_USER_ERROR             = 1U << 0,
@@ -3478,8 +3491,22 @@ static bool binder_proc_transaction(struct binder_transaction *t,
 		binder_transaction_priority(thread->task, t, node_prio,
 					    node->inherit_rt);
 		binder_enqueue_thread_work_ilocked(thread, &t->work);
+/* ZSW_ADD FOR CPUFREEZER begin */
+#if (ZTE_FEATURE_CGROUP_FREEZER == true || ZTE_FEATURE_CGROUP_FREEZER_V2 == true)
+		if (cgroup_needunfreeze_task(thread->task) && (!oneway)) {
+			cgroup_binder_unfreeze(thread->task);
+		}
+#endif
+/* ZSW_ADD FOR CPUFREEZER end */
 	} else if (!pending_async) {
 		binder_enqueue_work_ilocked(&t->work, &proc->todo);
+/* ZSW_ADD FOR CPUFREEZER begin */
+#if (ZTE_FEATURE_CGROUP_FREEZER == true || ZTE_FEATURE_CGROUP_FREEZER_V2 == true)
+		if (cgroup_needunfreeze_task(proc->tsk) && (!oneway)) {
+			cgroup_binder_unfreeze(proc->tsk);
+		}
+#endif
+/* ZSW_ADD FOR CPUFREEZER end */
 	} else {
 		binder_enqueue_work_ilocked(&t->work, &node->async_todo);
 	}

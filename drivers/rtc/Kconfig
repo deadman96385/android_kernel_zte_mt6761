@@ -1721,5 +1721,10 @@ config RTC_DRV_HID_SENSOR_TIME
 	  If this driver is compiled as a module, it will be named
 	  rtc-hid-sensor-time.
 
+config ZTE_ADD_DIS_RTC_SYSFS
+	bool "add an sysfs item to disable rtc"
+	default n
+	---help---
+	  Before use this config, you need to add code on specific pmic driver.
 
 endif # RTC_CLASS

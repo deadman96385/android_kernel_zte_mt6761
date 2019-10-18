@@ -1292,6 +1292,9 @@ static void if_tag_stat_update(const char *ifname, uid_t uid,
 		"uid=%u sk=%p dir=%d proto=%d bytes=%d)\n",
 		 ifname, uid, sk, direction, proto, bytes);
 
+	PM_NET_DEBUG("PM: ifname=%s uid=%u dir=%s proto=%d bytes=%d\n",
+		 ifname, uid, direction ? "in" : "out", proto, bytes);
+
 	spin_lock_bh(&iface_stat_list_lock);
 	iface_entry = get_iface_entry(ifname);
 	if (!iface_entry) {

@@ -1876,6 +1876,65 @@ void gpio_dump_regs_range(int start, int end)
 	}
 }
 
+#ifdef CONFIG_GPIO_LCM_BL_PWM_CTL
+static int mtk_pmx_set_mode_ex(struct mtk_pinctrl *pctl,
+		unsigned long pin, unsigned long mode)
+{
+	unsigned int reg_addr;
+	unsigned char bit;
+	unsigned int val;
+
+	unsigned int mask = (1L << GPIO_MODE_BITS) - 1;
+
+	if (pctl->devdata->pin_mode_grps)
+		return mtk_pinctrl_set_gpio_mode(pctl, pin, mode);
+
+	reg_addr = ((pin / MAX_GPIO_MODE_PER_REG) << pctl->devdata->port_shf)
+				+ pctl->devdata->pinmux_offset;
+	bit = pin % MAX_GPIO_MODE_PER_REG;
+	mask <<= (GPIO_MODE_BITS * bit);
+	val = (mode << (GPIO_MODE_BITS * bit));
+
+	return regmap_update_bits(mtk_get_regmap(pctl, pin),
+		reg_addr, mask, val);
+}
+
+static int mtk_pmx_gpio_set_direction_ex(struct mtk_pinctrl *pctl,
+				struct pinctrl_gpio_range *range, unsigned offset,
+				bool input)
+{
+	unsigned int reg_addr;
+	unsigned int bit;
+
+	if (pctl->devdata->pin_dir_grps)
+		return mtk_pinctrl_set_gpio_direction(pctl, offset, !input);
+
+
+	reg_addr = mtk_get_port(pctl, offset) + pctl->devdata->dir_offset;
+	bit = BIT(offset & 0xf);
+
+	if (input)
+		/* Different SoC has different alignment offset. */
+		reg_addr = CLR_ADDR(reg_addr, pctl);
+	else
+		reg_addr = SET_ADDR(reg_addr, pctl);
+
+	regmap_write(mtk_get_regmap(pctl, offset), reg_addr, bit);
+
+	return 0;
+}
+
+void mtk_gpio_set_mode_ex(unsigned long pin, unsigned long mode)
+{
+	mtk_pmx_set_mode_ex(pctl, pin, mode);
+}
+
+void mtk_gpio_out_value_ex(unsigned int offset, int value)
+{
+	mtk_pmx_gpio_set_direction_ex(pctl, NULL, offset, false);
+	mtk_gpio_set(pctl->chip, offset, value);
+}
+#endif
 void gpio_dump_regs(void)
 {
 	gpio_dump_regs_range(-1, -1);

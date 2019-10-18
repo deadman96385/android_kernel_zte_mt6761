@@ -248,10 +248,8 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 		    && info->chr_type == STANDARD_HOST)
 			pr_debug("USBIF & STAND_HOST skip current check\n");
 		else {
-			if (info->sw_jeita.sm == TEMP_T0_TO_T1) {
-				pdata->input_current_limit = 500000;
-				pdata->charging_current_limit = 350000;
-			}
+			if (info->sw_jeita.chg_current < pdata->charging_current_limit)
+				pdata->charging_current_limit = info->sw_jeita.chg_current;
 		}
 	}
 
@@ -268,6 +266,11 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 			pdata->input_current_limit =
 					pdata->thermal_input_current_limit;
 	}
+
+	if (pdata->policy_input_current_limit != -1)
+		if (pdata->policy_input_current_limit < pdata->input_current_limit)
+			pdata->input_current_limit = pdata->policy_input_current_limit;
+
 
 	if (mtk_pe40_get_is_connect(info)) {
 		if (info->pe4.pe4_input_current_limit != -1 &&
@@ -302,10 +305,11 @@ done:
 	if (ret != -ENOTSUPP && pdata->input_current_limit < aicr1_min)
 		pdata->input_current_limit = 0;
 
-	chr_err("force:%d thermal:%d,%d pe4:%d,%d,%d setting:%d %d type:%d usb_unlimited:%d usbif:%d usbsm:%d aicl:%d atm:%d\n",
+	chr_err("force:%d thermal:%d,%d policy:%d pe4:%d,%d,%d setting:%d %d type:%d usb_unlimited:%d usbif:%d usbsm:%d aicl:%d atm:%d\n",
 		_uA_to_mA(pdata->force_charging_current),
 		_uA_to_mA(pdata->thermal_input_current_limit),
 		_uA_to_mA(pdata->thermal_charging_current_limit),
+		_uA_to_mA(pdata->policy_input_current_limit),
 		_uA_to_mA(info->pe4.pe4_input_current_limit),
 		_uA_to_mA(info->pe4.pe4_input_current_limit_setting),
 		_uA_to_mA(info->pe4.input_current_limit),
@@ -405,6 +409,12 @@ static int mtk_switch_charging_plug_in(struct charger_manager *info)
 	get_monotonic_boottime(&swchgalg->charging_begin_time);
 	charger_manager_notifier(info, CHARGER_NOTIFY_START_CHARGING);
 
+#if defined(CONFIG_CHARGER_BQ2560X) || defined(CONFIG_CHARGER_HL7019X)
+	if (info->enable_type_c == false)
+		info->polling_interval = 2;
+	charger_dev_set_eoc_current(info->chg1_dev, 180000);
+#endif
+
 	return 0;
 }
 
@@ -488,6 +498,7 @@ static int mtk_switch_chr_cc(struct charger_manager *info)
 	struct switch_charging_alg_data *swchgalg = info->algorithm_data;
 	struct timespec time_now, charging_time;
 
+	info->polling_interval = CHARGING_INTERVAL;
 	/* check bif */
 	if (IS_ENABLED(CONFIG_MTK_BIF_SUPPORT)) {
 		if (pmic_is_bif_exist() != 1) {
@@ -541,6 +552,7 @@ int mtk_switch_chr_err(struct charger_manager *info)
 {
 	struct switch_charging_alg_data *swchgalg = info->algorithm_data;
 
+	info->polling_interval = CHARGING_INTERVAL;
 	if (info->enable_sw_jeita) {
 		if ((info->sw_jeita.sm == TEMP_BELOW_T0) ||
 			(info->sw_jeita.sm == TEMP_ABOVE_T4))
@@ -612,6 +624,10 @@ static int mtk_switch_charging_run(struct charger_manager *info)
 		mtk_pe20_check_charger(info);
 		mtk_pe_check_charger(info);
 	}
+
+#if defined(CONFIG_CHARGER_BQ2560X) || defined(CONFIG_CHARGER_HL7019X)
+	charger_dev_kick_wdt(info->chg1_dev);
+#endif
 
 	do {
 		switch (swchgalg->state) {

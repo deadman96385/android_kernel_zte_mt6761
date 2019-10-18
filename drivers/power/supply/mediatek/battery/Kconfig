@@ -35,3 +35,26 @@ config MTK_ADDITIONAL_BATTERY_TABLE
 	  Table number is five.
 	  Set No to disable the fifth battery table
 	  Table number is four.
+
+config VENDOR_POWER_VOTER
+	tristate "pmic voter module"
+
+	default n
+	help
+	  Say Y here to enable the "pmic voter module" driver
+
+config VENDOR_BATTERY_CAPACITY_LEARNING
+	tristate "Battery Capacity Learning driver"
+
+	default n
+	help
+	  Say Y here to enable the "Battery Capacity Learning" driver
+
+config VENDOR_CHARGE_ARBITRATE_SERVICE
+	tristate "Charge Arbitrate Service Driver"
+
+	default n
+	help
+	  Say Y here to enable the "Charge Arbitrate Service" driver
+
+

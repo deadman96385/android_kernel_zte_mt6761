@@ -1,0 +1,15 @@
+owners:
+- chen.baoyu@zte.com.cn
+- ge.tianyuan@zte.com.cn
+- rui.jiagui@zte.com.cn
+matchers:
+- exact: drivers/soc/qcom/vendor
+  owners:
+  - chen.baoyu@zte.com.cn
+  - ge.tianyuan@zte.com.cn
+  - rui.jiagui@zte.com.cn
+- exact: include/soc/qcom/vendor
+  owners:
+  - chen.baoyu@zte.com.cn
+  - ge.tianyuan@zte.com.cn
+  - rui.jiagui@zte.com.cn

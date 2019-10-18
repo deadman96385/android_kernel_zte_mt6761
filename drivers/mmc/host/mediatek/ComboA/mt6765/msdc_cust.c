@@ -326,6 +326,13 @@ void msdc_sd_power(struct msdc_host *host, u32 on)
 	msdc_dump_ldo_sts(NULL, 0, NULL, host);
 #endif
 }
+void msdc_sd_power_off_quick(void)
+{
+pr_info("sdcard removed and power off VMCH first!\n");
+//pmic_config_interface_nolock(0x1AC4,0x0,0x1,0); //new add FAQ15216
+pmic_config_interface(0x1AC4,0x0,0x1,0); //new add FAQ15216
+
+}
 
 void msdc_sd_power_off(void)
 {

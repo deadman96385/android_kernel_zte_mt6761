@@ -20,7 +20,7 @@ ifeq ($(wildcard $(TARGET_PREBUILT_KERNEL)),)
 $(TARGET_KERNEL_CONFIG): $(KERNEL_CONFIG_FILE) $(LOCAL_PATH)/Android.mk
 $(TARGET_KERNEL_CONFIG): $(shell find $(KERNEL_DIR) -name "Kconfig*")
 	$(hide) mkdir -p $(dir $@)
-	$(MAKE) -C $(KERNEL_DIR) $(KERNEL_MAKE_OPTION) $(KERNEL_DEFCONFIG)
+	$(MAKE) -C $(KERNEL_DIR) $(KERNEL_MAKE_OPTION) $(KERNEL_CFLAGS) $(KERNEL_DEFCONFIG)
 
 $(KERNEL_MODULES_DEPS): $(KERNEL_ZIMAGE_OUT) ;
 $(BUILT_DTB_OVERLAY_TARGET): $(KERNEL_ZIMAGE_OUT)
@@ -28,7 +28,7 @@ $(BUILT_DTB_OVERLAY_TARGET): $(KERNEL_ZIMAGE_OUT)
 .KATI_RESTAT: $(KERNEL_ZIMAGE_OUT)
 $(KERNEL_ZIMAGE_OUT): $(TARGET_KERNEL_CONFIG) FORCE
 	$(hide) mkdir -p $(dir $@)
-	$(MAKE) -C $(KERNEL_DIR) $(KERNEL_MAKE_OPTION)
+	$(MAKE) -C $(KERNEL_DIR) $(KERNEL_MAKE_OPTION) $(KERNEL_CFLAGS)
 	$(hide) $(call fixup-kernel-cmd-file,$(KERNEL_OUT)/arch/$(KERNEL_TARGET_ARCH)/boot/compressed/.piggy.xzkern.cmd)
 ifneq ($(KERNEL_CONFIG_MODULES),)
 	#$(MAKE) -C $(KERNEL_DIR) $(KERNEL_MAKE_OPTION) INSTALL_MOD_PATH=$(KERNEL_MODULES_SYMBOLS_OUT) modules_install
@@ -68,11 +68,11 @@ kernel-savedefconfig: $(TARGET_KERNEL_CONFIG)
 
 kernel-menuconfig:
 	$(hide) mkdir -p $(KERNEL_OUT)
-	$(MAKE) -C $(KERNEL_DIR) $(KERNEL_MAKE_OPTION) menuconfig
+	$(MAKE) -C $(KERNEL_DIR) $(KERNEL_MAKE_OPTION) $(KERNEL_CFLAGS) menuconfig
 
 %config-kernel:
 	$(hide) mkdir -p $(KERNEL_OUT)
-	$(MAKE) -C $(KERNEL_DIR) $(KERNEL_MAKE_OPTION) $(patsubst %config-kernel,%config,$@)
+	$(MAKE) -C $(KERNEL_DIR) $(KERNEL_MAKE_OPTION) $(KERNEL_CFLAGS) $(patsubst %config-kernel,%config,$@)
 
 clean-kernel:
 	$(hide) rm -rf $(KERNEL_OUT) $(KERNEL_MODULES_OUT) $(INSTALLED_KERNEL_TARGET)

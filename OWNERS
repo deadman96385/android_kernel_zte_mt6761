@@ -1,0 +1,42 @@
+owners:
+- cao.yaobinxa@zte.com.cn
+- zhang.jian43@zte.com.cn
+- li.jianqiang3@zte.com.cn
+- yang.chaofeng@zte.com.cn
+- zhou.teng@zte.com.cn
+- li.bixuan@zte.com.cn
+- li.jiangshuo9@zte.com.cn
+- li.peng29@zte.com.cn
+- dou.mingming@zte.com.cn
+- zhao.liqiang@zte.com.cn
+- hu.nan1@zte.com.cn
+- cui.xiaochuan@zte.com.cn
+- zhu.xuekai@zte.com.cn
+- yang.yanpeng@zte.com.cn
+- jia.baofeng@zte.com.cn
+- zhang.bo19@zte.com.cn
+matchers:
+- exact: sound
+  owners:
+  - wei.guohua@zte.com.cn
+  - wang.junwei2@zte.com.cn
+  - xiao.lei6@zte.com.cn
+  - hao.bo15@zte.com.cn
+- exact: drivers
+  owners:
+  - wei.guohua@zte.com.cn
+  - wang.junwei2@zte.com.cn
+  - xiao.lei6@zte.com.cn
+  - hao.bo15@zte.com.cn
+- exact: include
+  owners:
+  - wei.guohua@zte.com.cn
+  - wang.junwei2@zte.com.cn
+  - xiao.lei6@zte.com.cn
+  - hao.bo15@zte.com.cn
+- exact: arch
+  owners:
+  - wei.guohua@zte.com.cn
+  - wang.junwei2@zte.com.cn
+  - xiao.lei6@zte.com.cn
+  - hao.bo15@zte.com.cn

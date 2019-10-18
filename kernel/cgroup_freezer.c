@@ -22,6 +22,7 @@
 #include <linux/freezer.h>
 #include <linux/seq_file.h>
 #include <linux/mutex.h>
+#include <linux/list.h>
 
 /*
  * A cgroup is freezing if any FREEZING flags are set.  FREEZING_SELF is
@@ -43,7 +44,24 @@ enum freezer_state_flags {
 struct freezer {
 	struct cgroup_subsys_state	css;
 	unsigned int			state;
+/**** ZSW_ADD FOR CPUFREEZER begin ****/
+	unsigned int	change_state;
+/**** ZSW_ADD FOR CPUFREEZER end ****/
+
 };
+
+/**** ZSW_ADD FOR CPUFREEZER begin ****/
+struct freeze_uid {
+	struct freezer *freezer;
+	unsigned int uid;
+	struct list_head freezer_list;
+};
+
+extern void send_unfreeze_event(char *type, unsigned int uid);
+
+struct freeze_uid *uid_list = NULL;
+#define UID_SIZE	100
+/**** ZSW_ADD FOR CPUFREEZER end ****/
 
 static DEFINE_MUTEX(freezer_mutex);
 
@@ -73,6 +91,90 @@ bool cgroup_freezing(struct task_struct *task)
 	return ret;
 }
 
+/**** ZSW_ADD FOR CPUFREEZER begin ****/
+static int cgroup_get_uid(struct freezer *freezer)
+{
+	char name_buf[UID_SIZE] = {0};
+	int uid = 0;
+	int ret = 0;
+
+	if (cgroup_name(freezer->css.cgroup, name_buf, UID_SIZE) > 0) {
+		ret = sscanf(name_buf, "uid_%d", &uid);
+		if (ret)
+			return uid;
+		pr_err("cgroup get uid from name is err!!!\n");
+	} else {
+		pr_err("cgroup can not get the cgroup name!!!\n");
+	}
+	return 0;
+}
+
+static struct freeze_uid *freezer_init_uidlist(struct freeze_uid *head)
+{
+	head = kzalloc(sizeof(struct freeze_uid), GFP_KERNEL);
+	if (head == NULL) {
+		pr_err("could not init freezer list for malloc error!!!\n");
+		return NULL;
+	}
+	INIT_LIST_HEAD(&(head->freezer_list));
+	return head;
+}
+
+static struct freezer *freezer_search_uidlist(unsigned int uid)
+{
+	struct freeze_uid *temp = NULL;
+
+	if (uid_list == NULL) {
+		pr_err("could not search freezer list for uidlist is NULL!!!\n");
+		return NULL;
+	}
+	list_for_each_entry(temp, &(uid_list->freezer_list), freezer_list)
+		if (temp->uid == uid)
+			return temp->freezer;
+	return NULL;
+}
+
+static int freezer_insert_uidlist(struct freezer *freezer, unsigned int uid)
+{
+	struct freeze_uid *temp = NULL;
+
+	if (uid_list == NULL) {
+		pr_err("could not insert freezer list for uidlist is NULL!!!\n");
+		return -ENOMEM;
+	}
+	if (freezer_search_uidlist(uid)) {
+		return 0;
+	}
+
+	temp = kzalloc(sizeof(struct freeze_uid), GFP_KERNEL);
+	if (temp == NULL) {
+		pr_err("could not insert freezer list for malloc error!!!\n");
+		return -ENOMEM;
+	}
+	temp->freezer = freezer;
+	temp->uid = uid;
+	pr_info("uid %u is insert to the freezer list\n", uid);
+	list_add_tail(&(temp->freezer_list), &(uid_list->freezer_list));
+	return 0;
+}
+
+static void freezer_delete_uidlist(struct freezer *freezer)
+{
+	struct freeze_uid *temp = NULL;
+
+	if (uid_list == NULL) {
+		pr_err("could not delete freezer list for uidlist is NULL!!!\n");
+		return;
+	}
+	list_for_each_entry(temp, &(uid_list->freezer_list), freezer_list)
+		if (temp != NULL && temp->freezer == freezer) {
+			pr_info("freezer list uid %u is delete for css free\n", temp->uid);
+			list_del(&(temp->freezer_list));
+			kfree(temp);
+			return;
+		}
+}
+/**** ZSW_ADD FOR CPUFREEZER end ****/
 static const char *freezer_state_strs(unsigned int state)
 {
 	if (state & CGROUP_FROZEN)
@@ -143,6 +245,9 @@ static void freezer_css_offline(struct cgroup_subsys_state *css)
 
 static void freezer_css_free(struct cgroup_subsys_state *css)
 {
+/**** ZSW_ADD FOR CPUFREEZER begin ****/
+	freezer_delete_uidlist(css_freezer(css));
+/**** ZSW_ADD FOR CPUFREEZER end ****/
 	kfree(css_freezer(css));
 }
 
@@ -414,6 +519,11 @@ static void freezer_change_state(struct freezer *freezer, bool freeze)
 	}
 	rcu_read_unlock();
 	mutex_unlock(&freezer_mutex);
+	if (uid_list == NULL)
+		uid_list = freezer_init_uidlist(uid_list);
+	freezer_insert_uidlist(freezer, cgroup_get_uid(freezer));
+	freezer->change_state = 1;
+	pr_err("uid %d freeze state is change to %d\n", cgroup_get_uid(freezer), freeze);
 }
 
 static ssize_t freezer_write(struct kernfs_open_file *of,
@@ -449,6 +559,83 @@ static u64 freezer_parent_freezing_read(struct cgroup_subsys_state *css,
 
 	return (bool)(freezer->state & CGROUP_FREEZING_PARENT);
 }
+
+/**** ZSW_ADD FOR CPUFREEZER begin ****/
+bool cgroup_needunfreeze_uid(unsigned int uid)
+{
+	struct freezer *freezer = freezer_search_uidlist(uid);
+	bool ret;
+
+	if (freezer == NULL) {
+		pr_err("network unfreeze uid %u, could not find in the uid freezer list", uid);
+		return false;
+	}
+	rcu_read_lock();
+	ret = (freezer->state & CGROUP_FREEZING) && (freezer->change_state);
+	rcu_read_unlock();
+	return ret;
+}
+
+bool cgroup_needunfreeze_task(struct task_struct *task)
+{
+	bool ret;
+
+	rcu_read_lock();
+	ret = (task_freezer(task)->state & CGROUP_FREEZING) && (task_freezer(task)->change_state);
+	rcu_read_unlock();
+
+	return ret;
+
+}
+
+void cgroup_binder_unfreeze(struct task_struct *task)
+{
+	struct freezer *freezer = task_freezer(task);
+	int uid = 0;
+
+	if (freezer == NULL) {
+		pr_err("binder unfreeze get task %d freezer is NULL!!!\n", task->pid);
+		return;
+	}
+
+	freezer->change_state = 0;
+	uid = cgroup_get_uid(freezer);
+	if (uid > 0)
+		send_unfreeze_event("BINDER", uid);
+	else
+		pr_err("find the task %d cgroup uid is error!!!\n", task->pid);
+}
+
+void cgroup_signal_unfreeze(struct task_struct *task)
+{
+	struct freezer *freezer = task_freezer(task);
+	int uid = 0;
+
+	if (freezer == NULL) {
+		pr_err("signal unfreeze get task %d freezer is NULL!!!\n", task->pid);
+		return;
+	}
+
+	freezer->change_state = 0;
+	uid = cgroup_get_uid(freezer);
+	if (uid > 0)
+		send_unfreeze_event("KILL", uid);
+	else
+		pr_err("find the task %d cgroup uid is error!!!\n", task->pid);
+}
+
+void cgroup_network_unfreeze(unsigned int uid)
+{
+	struct freezer *freezer = freezer_search_uidlist(uid);
+
+	if (freezer == NULL) {
+		pr_err("network unfreeze uid %u, could not find in the uid freezer list", uid);
+		return;
+	}
+	freezer->change_state = 0;
+	send_unfreeze_event("NET", uid);
+}
+/* ZSW_ADD FOR CPUFREEZER end */
 
 static struct cftype files[] = {
 	{

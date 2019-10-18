@@ -25,6 +25,8 @@
 #define CDEBUG_MASK (1<<3)
 /* dev and resource tracking */
 #define DDEBUG_MASK (1<<4)
+/* PM uid packets tracking */
+#define PMEBUG_MASK (0x20)
 
 /* E.g (IDEBUG_MASK | CDEBUG_MASK | DDEBUG_MASK) */
 #define DEFAULT_DEBUG_MASK 0
@@ -38,6 +40,7 @@
 #define RDEBUG
 #define CDEBUG
 #define DDEBUG
+#define PMEBUG
 
 #define MSK_DEBUG(mask, ...) do {                           \
 		if (unlikely(qtaguid_debug_mask & (mask)))  \
@@ -67,6 +70,11 @@
 #define DR_DEBUG(...) MSK_DEBUG(DDEBUG_MASK, __VA_ARGS__)
 #else
 #define DR_DEBUG(...) no_printk(__VA_ARGS__)
+#endif
+#ifdef PMEBUG
+#define PM_NET_DEBUG(...) MSK_DEBUG(PMEBUG_MASK, __VA_ARGS__)
+#else
+#define PM_NET_DEBUG(...) no_printk(__VA_ARGS__)
 #endif
 
 extern uint qtaguid_debug_mask;

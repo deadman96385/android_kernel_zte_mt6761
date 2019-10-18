@@ -897,10 +897,17 @@ void dpm_resume(pm_message_t state)
 		get_device(dev);
 		if (!is_async(dev)) {
 			int error;
+			/* check if resume cost over 10ms */
+			unsigned long timeout = jiffies + 1;
 
 			mutex_unlock(&dpm_list_mtx);
 
 			error = device_resume(dev, state, false);
+			if (time_after_eq(jiffies, timeout)) {
+				pr_err("PM: devices of %s exit device_resume() %lu ms\n",
+						dev_name(dev),  (jiffies + 1 - timeout)*10);
+			}
+
 			if (error) {
 				suspend_stats.failed_resume++;
 				dpm_save_failed_step(SUSPEND_RESUME);

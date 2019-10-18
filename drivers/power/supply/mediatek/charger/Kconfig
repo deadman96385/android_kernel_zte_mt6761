@@ -114,3 +114,19 @@ config MTK_BQ24296_SUPPORT
 	  It depends on config MTK_SMART_BATTERY
 	  and config MTK_SWCHR_SUPPORT
 	  Set to Yes if BQ24296 is used.
+
+config CHARGER_BQ2560X
+	bool "MTK_BQ2560X_SUPPORT"
+	help
+	  This is to enable MediaTek supports to BQ2560X.
+	  It depends on config MTK_SMART_BATTERY
+	  and config MTK_SWCHR_SUPPORT
+	  Set to Yes if BQ2560X is used.
+
+config CHARGER_HL7019X
+	bool "MTK_HL7019X_SUPPORT"
+	help
+	  This is to enable MediaTek supports to HL7019X.
+	  It depends on config MTK_SMART_BATTERY
+	  and config MTK_SWCHR_SUPPORT
+	  Set to Yes if HL7019X is used.

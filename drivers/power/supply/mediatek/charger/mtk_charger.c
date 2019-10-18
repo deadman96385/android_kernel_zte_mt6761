@@ -74,12 +74,25 @@
 
 #include "mtk_charger_intf.h"
 #include "mtk_charger_init.h"
+#include "../zte_misc.h"
 
 static struct charger_manager *pinfo;
 static struct list_head consumer_head = LIST_HEAD_INIT(consumer_head);
 static DEFINE_MUTEX(consumer_mutex);
 
 #define USE_FG_TIMER 1
+
+extern enum charger_types_oem charge_type_oem;
+#ifdef ZTE_CHARGER_TYPE_OEM
+#define LOW_SOC_HEARTBEAT_MS 20000
+#define HEARTBEAT_CHARGER_TYPE_OEM_MS 2000
+#define DETECT_CHARGER_TYPE_OME_COUNTER 5
+extern int charge_remain_time;
+#endif
+
+#define HEARTBEAT_MS		  	30000
+int g_update_period_ms = HEARTBEAT_MS;
+int g_charger_detect_counter = 0;
 
 bool is_power_path_supported(void)
 {
@@ -407,11 +420,101 @@ int charger_manager_set_input_current_limit(struct charger_consumer *consumer,
 		pdata->thermal_input_current_limit = input_current;
 		chr_err("%s: dev:%s idx:%d en:%d\n", __func__,
 			dev_name(consumer->dev), idx, input_current);
-		_mtk_charger_change_current_setting(info);
-		_wake_up_charger(info);
+		if (info->chr_type != CHARGER_UNKNOWN) {
+			_mtk_charger_change_current_setting(info);
+			_wake_up_charger(info);
+		}
 		return 0;
 	}
 	return -EBUSY;
+}
+
+int charger_manager_set_input_current_limit_policy(int usb_input_current)
+{
+	if (pinfo && pinfo->chg1_consumer) {
+		struct charger_consumer *consumer = pinfo->chg1_consumer;
+		struct charger_manager *info = consumer->cm;
+		struct charger_data *pdata = NULL;
+
+		chr_err("%s:\n", __func__);
+		if (info != NULL) {
+			pdata = &info->chg1_data;
+
+			pdata->policy_input_current_limit = usb_input_current;
+			chr_err("%s: dev:%s current:%d\n", __func__, dev_name(consumer->dev), usb_input_current);
+			_mtk_charger_change_current_setting(info);
+			_wake_up_charger(info);
+			return 0;
+		}
+		return -EBUSY;
+	}
+	return 0;
+}
+
+int charger_manager_battery_charging_enabled(int enable)
+{
+	if (pinfo && pinfo->chg1_dev) {
+		if (enable == 1 && pinfo->cmd_discharging) {
+			pinfo->cmd_discharging = false;
+			charger_dev_enable(pinfo->chg1_dev, true);
+			if (mt_get_charger_type() != CHARGER_UNKNOWN)
+				charger_manager_notifier(pinfo, CHARGER_NOTIFY_START_CHARGING);
+		} else if (enable == 0 && !pinfo->cmd_discharging) {
+			pinfo->cmd_discharging = true;
+			charger_dev_enable(pinfo->chg1_dev, false);
+			charger_manager_notifier(pinfo, CHARGER_NOTIFY_STOP_CHARGING);
+		}
+		chr_err("%s cmd_discharging=%d\n", __func__, pinfo->cmd_discharging);
+	}
+
+	return 0;
+}
+
+int charger_manager_set_ship_mode(int enable)
+{
+	if (pinfo && pinfo->chg1_dev) {
+		charger_dev_set_ship_mode(pinfo->chg1_dev, enable);
+
+		chr_err("%s set ship_mode =%d\n", __func__, enable);
+	}
+
+	return 0;
+}
+
+int charger_manager_get_ship_mode(void)
+{
+	bool enable_status = 0;
+
+	if (pinfo && pinfo->chg1_dev) {
+		charger_dev_get_ship_mode(pinfo->chg1_dev, &enable_status);
+
+		chr_err("%s get ship_mode =%d\n", __func__, enable_status);
+	}
+	return enable_status;
+}
+
+int charger_manager_get_charge_voltage_max(void)
+{
+	int voltage_max = 0;
+
+	if (pinfo && pinfo->chg1_dev) {
+		charger_dev_get_constant_voltage(pinfo->chg1_dev, &voltage_max);
+
+		chr_err("%s get voltage_max =%d\n", __func__, voltage_max);
+	}
+	return voltage_max;
+}
+
+
+int charger_manager_get_enable_status(void)
+{
+	bool enable_status = 0;
+
+	if (pinfo && pinfo->chg1_dev) {
+		charger_dev_is_enabled(pinfo->chg1_dev, &enable_status);
+		chr_err("%s: enable_status:%d\n", __func__, enable_status);
+	}
+	return enable_status;
 }
 
 int charger_manager_set_charging_current_limit(
@@ -432,8 +535,10 @@ int charger_manager_set_charging_current_limit(
 		pdata->thermal_charging_current_limit = charging_current;
 		chr_err("%s: dev:%s idx:%d en:%d\n", __func__,
 			dev_name(consumer->dev), idx, charging_current);
-		_mtk_charger_change_current_setting(info);
-		_wake_up_charger(info);
+		if (info->chr_type != CHARGER_UNKNOWN) {
+			_mtk_charger_change_current_setting(info);
+			_wake_up_charger(info);
+		}
 		return 0;
 	}
 	return -EBUSY;
@@ -782,6 +887,8 @@ int charger_get_vbus(void)
 
 /* internal algorithm common function end */
 
+int battery_health_status = POWER_SUPPLY_HEALTH_GOOD;
+#define JEITA_DEFAULT_CURRENT 1000000
 /* sw jeita */
 void do_sw_jeita_state_machine(struct charger_manager *info)
 {
@@ -796,6 +903,7 @@ void do_sw_jeita_state_machine(struct charger_manager *info)
 		chr_err("[SW_JEITA] Battery Over high Temperature(%d) !!\n",
 			info->data.temp_t4_thres);
 
+		battery_health_status = POWER_SUPPLY_HEALTH_OVERHEAT;
 		sw_jeita->sm = TEMP_ABOVE_T4;
 		sw_jeita->charging = false;
 	} else if (info->battery_temp > info->data.temp_t3_thres) {
@@ -813,6 +921,7 @@ void do_sw_jeita_state_machine(struct charger_manager *info)
 				info->data.temp_t3_thres,
 				info->data.temp_t4_thres);
 
+			battery_health_status = POWER_SUPPLY_HEALTH_WARM;
 			sw_jeita->sm = TEMP_T3_TO_T4;
 		}
 	} else if (info->battery_temp >= info->data.temp_t2_thres) {
@@ -827,6 +936,7 @@ void do_sw_jeita_state_machine(struct charger_manager *info)
 			chr_err("[SW_JEITA] Battery Normal Temperature between %d and %d !!\n",
 				info->data.temp_t2_thres,
 				info->data.temp_t3_thres);
+			battery_health_status = POWER_SUPPLY_HEALTH_GOOD;
 			sw_jeita->sm = TEMP_T2_TO_T3;
 		}
 	} else if (info->battery_temp >= info->data.temp_t1_thres) {
@@ -850,6 +960,7 @@ void do_sw_jeita_state_machine(struct charger_manager *info)
 				info->data.temp_t1_thres,
 				info->data.temp_t2_thres);
 
+			battery_health_status = POWER_SUPPLY_HEALTH_COOL;
 			sw_jeita->sm = TEMP_T1_TO_T2;
 		}
 	} else if (info->battery_temp >= info->data.temp_t0_thres) {
@@ -866,39 +977,46 @@ void do_sw_jeita_state_machine(struct charger_manager *info)
 				info->data.temp_t0_thres,
 				info->data.temp_t1_thres);
 
+			battery_health_status = POWER_SUPPLY_HEALTH_COOL;
 			sw_jeita->sm = TEMP_T0_TO_T1;
 		}
 	} else {
 		chr_err("[SW_JEITA] Battery below low Temperature(%d) !!\n",
 			info->data.temp_t0_thres);
+		battery_health_status = POWER_SUPPLY_HEALTH_COLD;
 		sw_jeita->sm = TEMP_BELOW_T0;
 		sw_jeita->charging = false;
 	}
 
 	/* set CV after temperature changed */
 	/* In normal range, we adjust CV dynamically */
-	if (sw_jeita->sm != TEMP_T2_TO_T3) {
-		if (sw_jeita->sm == TEMP_ABOVE_T4)
-			sw_jeita->cv = info->data.jeita_temp_above_t4_cv;
-		else if (sw_jeita->sm == TEMP_T3_TO_T4)
-			sw_jeita->cv = info->data.jeita_temp_t3_to_t4_cv;
-		else if (sw_jeita->sm == TEMP_T2_TO_T3)
-			sw_jeita->cv = 0;
-		else if (sw_jeita->sm == TEMP_T1_TO_T2)
-			sw_jeita->cv = info->data.jeita_temp_t1_to_t2_cv;
-		else if (sw_jeita->sm == TEMP_T0_TO_T1)
-			sw_jeita->cv = info->data.jeita_temp_t0_to_t1_cv;
-		else if (sw_jeita->sm == TEMP_BELOW_T0)
-			sw_jeita->cv = info->data.jeita_temp_below_t0_cv;
-		else
-			sw_jeita->cv = info->data.battery_cv;
+	/*if (sw_jeita->sm != TEMP_T2_TO_T3) { */
+	if (sw_jeita->sm == TEMP_ABOVE_T4) {
+		sw_jeita->cv = info->data.jeita_temp_above_t4_cv;
+		sw_jeita->chg_current = info->data.jeita_temp_above_t4_chg_current;
+	} else if (sw_jeita->sm == TEMP_T3_TO_T4) {
+		sw_jeita->cv = info->data.jeita_temp_t3_to_t4_cv;
+		sw_jeita->chg_current = info->data.jeita_temp_t3_to_t4_chg_current;
+	} else if (sw_jeita->sm == TEMP_T2_TO_T3) {
+		sw_jeita->cv = info->data.jeita_temp_t2_to_t3_cv;
+		sw_jeita->chg_current = info->data.jeita_temp_t2_to_t3_chg_current;
+	} else if (sw_jeita->sm == TEMP_T1_TO_T2) {
+		sw_jeita->cv = info->data.jeita_temp_t1_to_t2_cv;
+		sw_jeita->chg_current = info->data.jeita_temp_t1_to_t2_chg_current;
+	} else if (sw_jeita->sm == TEMP_T0_TO_T1) {
+		sw_jeita->cv = info->data.jeita_temp_t0_to_t1_cv;
+		sw_jeita->chg_current = info->data.jeita_temp_t0_to_t1_chg_current;
+	} else if (sw_jeita->sm == TEMP_BELOW_T0) {
+		sw_jeita->cv = info->data.jeita_temp_below_t0_cv;
+		sw_jeita->chg_current = info->data.jeita_temp_below_t0_chg_current;
 	} else {
-		sw_jeita->cv = 0;
+		sw_jeita->cv = info->data.battery_cv;
+		sw_jeita->chg_current = JEITA_DEFAULT_CURRENT;
 	}
 
-	chr_err("[SW_JEITA]preState:%d newState:%d tmp:%d cv:%d\n",
+	chr_err("[SW_JEITA]preState:%d newState:%d tmp:%d cv:%d chgcurrent: %d\n",
 		sw_jeita->pre_sm, sw_jeita->sm, info->battery_temp,
-		sw_jeita->cv);
+		sw_jeita->cv, sw_jeita->chg_current);
 }
 
 static ssize_t show_sw_jeita(struct device *dev, struct device_attribute *attr,
@@ -1151,6 +1269,20 @@ static int mtk_charger_plug_in(struct charger_manager *info,
 		info->plug_in(info);
 
 	charger_dev_plug_in(info->chg1_dev);
+	if (info->zte_usb_valid_wake_source)
+		__pm_wakeup_event(info->zte_usb_valid_wake_source, 12000);
+
+	charge_type_oem = CHARGER_TYPE_DEFAULT;
+#ifdef ZTE_CHARGER_TYPE_OEM
+	g_update_period_ms = HEARTBEAT_CHARGER_TYPE_OEM_MS;
+#else
+	g_update_period_ms = HEARTBEAT_MS;
+#endif
+	g_charger_detect_counter = 0;
+	cancel_delayed_work(&info->update_heartbeat_work);
+	schedule_delayed_work(&info->update_heartbeat_work,
+			round_jiffies_relative(msecs_to_jiffies(500)));
+
 	return 0;
 }
 
@@ -1172,6 +1304,12 @@ static int mtk_charger_plug_out(struct charger_manager *info)
 
 	charger_dev_set_input_current(info->chg1_dev, 500000);
 	charger_dev_plug_out(info->chg1_dev);
+	if (info->zte_usb_valid_wake_source)
+		__pm_wakeup_event(info->zte_usb_valid_wake_source, 5000);
+
+	charge_type_oem = CHARGER_TYPE_DEFAULT;
+	g_update_period_ms = HEARTBEAT_MS;
+	g_charger_detect_counter = 0;
 	return 0;
 }
 
@@ -1363,6 +1501,8 @@ static void charger_check_status(struct charger_manager *info)
 	bool charging = true;
 	int temperature;
 	struct battery_thermal_protection_data *thermal;
+	bool safety_timer_en = false;
+	bool charger_policy_en = false;
 
 	temperature = info->battery_temp;
 	thermal = &info->thermal;
@@ -1427,7 +1567,25 @@ static void charger_check_status(struct charger_manager *info)
 
 	if (info->cmd_discharging)
 		charging = false;
-	if (info->safety_timeout)
+
+	charger_policy_en = charger_policy_get_status();
+	if (!info->enable_sw_safety_timer) {
+		charger_dev_is_safety_timer_enabled(info->chg1_dev, &safety_timer_en);
+		chr_err("hw safety_timer_en is %d\n", safety_timer_en);
+		if (charger_policy_en == true) {
+			if (safety_timer_en == true) {
+				chr_err("forcely disable hw safety timer when policy is enabled!\n");
+				charger_dev_enable_safety_timer(info->chg1_dev, false);
+			}
+		} else {
+			if (safety_timer_en == false) {
+				chr_err("forcely enable hw safety timer when policy is not enabled!\n");
+				charger_dev_enable_safety_timer(info->chg1_dev, true);
+			}
+		}
+	}
+
+	if (info->safety_timeout && !charger_policy_en)
 		charging = false;
 	if (info->vbusov_stat)
 		charging = false;
@@ -1441,7 +1599,7 @@ stop_charging:
 		charging, info->cmd_discharging, info->safety_timeout,
 		info->vbusov_stat, info->can_charging, charging);
 
-	if (charging != info->can_charging)
+	if (info->chr_type != CHARGER_UNKNOWN && charging != info->can_charging)
 		_charger_manager_enable_charging(info->chg1_consumer,
 						0, charging);
 
@@ -1458,8 +1616,10 @@ static void kpoc_power_off_check(struct charger_manager *info)
 		pr_debug("[%s] vchr=%d, boot_mode=%d\n",
 			__func__, vbus, boot_mode);
 		if (vbus < 2500 && atomic_read(&info->enable_kpoc_shdn)) {
+#ifndef ZTE_FEATURE_PV_AR
 			chr_err("Unplug Charger/USB in KPOC mode, shutdown\n");
 			kernel_power_off();
+#endif
 		}
 	}
 }
@@ -1524,12 +1684,252 @@ void mtk_charger_stop_timer(struct charger_manager *info)
 		gtimer_stop(&info->charger_kthread_fgtimer);
 }
 
+#ifdef ZTE_CHARGER_TYPE_OEM
+#define BATTERY_CURRENT 500
+#define ZTE_CONSECUTIVE_COUNT 1
+#define SLOW_CHG_CAP_THRES 75
+#define BATT_SOC_FULL 100
+#define HOUR_PER_MIN     60
+#define BATT_TERM_CURRENT 150
+#define CHARGE_CV_ESTIMATE_MIN 10
+#define MAX_CHARGING_FULL_TIME_MIN (8 * 60)  /* 8 hours,  400mA charging current*/
+#define STANDARD_HOST_CURRENT 400
+
+void reset_period(int capacity, int *period)
+{
+	if (capacity < 20)
+		*period = LOW_SOC_HEARTBEAT_MS;
+	else
+		*period = HEARTBEAT_MS;
+}
+
+void zte_detect_dcp_charger_oem_type(struct charger_manager *info,
+	int battery_current, int capacity, int *period, int battery_status)
+{
+	static int count = 0;
+
+	if ((battery_health_status == POWER_SUPPLY_HEALTH_GOOD)
+		&& info->chg1_data.thermal_charging_current_limit == -1
+		&& battery_status == POWER_SUPPLY_STATUS_CHARGING
+		&& charge_type_oem != CHARGER_TYPE_DCP_SLOW
+		&& (g_charger_detect_counter <= DETECT_CHARGER_TYPE_OME_COUNTER)) {
+		*period = HEARTBEAT_CHARGER_TYPE_OEM_MS;
+		if (count == ZTE_CONSECUTIVE_COUNT) {
+			if ((-1 * battery_current) > 0 && (-1 * battery_current) < BATTERY_CURRENT
+				&& capacity <= SLOW_CHG_CAP_THRES) {
+				charge_type_oem = CHARGER_TYPE_DCP_SLOW;
+				count = 0;
+				reset_period(capacity, period);
+				zte_power_supply_changed();
+				pr_info("dcp slow success charge_type_oem=%d\n", charge_type_oem);
+			} else {
+				if (g_charger_detect_counter > DETECT_CHARGER_TYPE_OME_COUNTER) {
+					count = 0;
+					reset_period(capacity, period);
+				}
+			}
+		} else {
+			if ((-1 * battery_current) > 0 && (-1 * battery_current) < BATTERY_CURRENT
+				&& capacity <= SLOW_CHG_CAP_THRES) {
+				count++;
+				pr_info("dcp slow start\n");
+			} else {
+				if (g_charger_detect_counter > DETECT_CHARGER_TYPE_OME_COUNTER) {
+					count = 0;
+					reset_period(capacity, period);
+				}
+			}
+		}
+	} else {
+		if (g_charger_detect_counter > DETECT_CHARGER_TYPE_OME_COUNTER) {
+			count = 0;
+			reset_period(capacity, period);
+		}
+	}
+}
+
+void zte_detect_sdp_charger_oem_type(struct charger_manager *info,
+	int battery_current, int capacity, int *period, int battery_status)
+{
+	static int count = 0;
+
+	if (info->chr_type == NONSTANDARD_CHARGER && (g_charger_detect_counter <= DETECT_CHARGER_TYPE_OME_COUNTER)) {
+		if (charge_type_oem == CHARGER_TYPE_DEFAULT
+			&& (battery_health_status == POWER_SUPPLY_HEALTH_GOOD
+			&& info->chg1_data.thermal_charging_current_limit == -1)) {
+			if (battery_status == POWER_SUPPLY_STATUS_CHARGING
+				|| battery_status == POWER_SUPPLY_STATUS_FULL)
+				charge_type_oem = CHARGER_TYPE_SDP_NBC1P2;
+			else {
+				charge_type_oem = CHARGER_TYPE_SDP_NBC1P2_CHARGR_ERR;
+				reset_period(capacity, period);
+			}
+			pr_info("check charge_type_oem=%d to no bc1.2\n", charge_type_oem);
+		} else if (charge_type_oem == CHARGER_TYPE_SDP_NBC1P2
+			&& (battery_health_status == POWER_SUPPLY_HEALTH_GOOD)
+			&& info->chg1_data.thermal_charging_current_limit == -1) {
+			*period = HEARTBEAT_CHARGER_TYPE_OEM_MS;
+			if (count == ZTE_CONSECUTIVE_COUNT) {
+				if ((-1 * battery_current) > 0 && (-1 * battery_current) < BATTERY_CURRENT
+					&& capacity <= SLOW_CHG_CAP_THRES) {
+					charge_type_oem = CHARGER_TYPE_SDP_NBC1P2_SLOW;
+					count = 0;
+					reset_period(capacity, period);
+					zte_power_supply_changed();
+					pr_info("check charge_type_oem no bc1.2 & slow success\n");
+				} else {
+					if (g_charger_detect_counter > DETECT_CHARGER_TYPE_OME_COUNTER) {
+						count = 0;
+						reset_period(capacity, period);
+					}
+				}
+			} else {
+				if ((-1 * battery_current) > 0 && (-1 * battery_current) < BATTERY_CURRENT &&
+					capacity <= SLOW_CHG_CAP_THRES) {
+					count++;
+				} else {
+					if (g_charger_detect_counter > DETECT_CHARGER_TYPE_OME_COUNTER) {
+						count = 0;
+						reset_period(capacity, period);
+					}
+				}
+			}
+		} else {
+			if (g_charger_detect_counter > DETECT_CHARGER_TYPE_OME_COUNTER) {
+				count = 0;
+				reset_period(capacity, period);
+			}
+		}
+		pr_info("charge_type_oem=%d\n", charge_type_oem);
+	} else {
+		if (g_charger_detect_counter > DETECT_CHARGER_TYPE_OME_COUNTER) {
+			count = 0;
+			reset_period(capacity, period);
+		}
+	}
+}
+
+void zte_detect_charger_oem_type(struct charger_manager *info,
+	int battery_current, int capacity, int *period, int battery_status)
+{
+	if (info->chr_type != CHARGER_UNKNOWN) {
+		g_charger_detect_counter++;
+		pr_info("chr_type=%d g_charger_detect_counter=%d\n",
+			info->chr_type, g_charger_detect_counter);
+		if (info->chr_type == NONSTANDARD_CHARGER) {
+			zte_detect_sdp_charger_oem_type(info,
+				battery_current, capacity, period, battery_status);
+		} else if (info->chr_type == STANDARD_CHARGER || info->chr_type == APPLE_2_1A_CHARGER
+			|| info->chr_type == APPLE_1_0A_CHARGER || info->chr_type == APPLE_0_5A_CHARGER) {
+			zte_detect_dcp_charger_oem_type(info,
+				battery_current, capacity, period, battery_status);
+		} else {
+			*period = HEARTBEAT_CHARGER_TYPE_OEM_MS;  /* to faster the estimate charge remain time */
+			if (g_charger_detect_counter > DETECT_CHARGER_TYPE_OME_COUNTER)
+				reset_period(capacity, period);
+		}
+	}
+}
+
+void zte_estimate_charge_remain_time(struct charger_manager *info,
+	int battery_current, int capacity, int battery_status)
+{
+	int time_hour = 0;
+	int time_min = 0;
+	static int time_min_last = -1;
+
+	if (info->chr_type != CHARGER_UNKNOWN) {
+		if ( battery_current > BATT_TERM_CURRENT && battery_status == POWER_SUPPLY_STATUS_CHARGING) {
+			/* hours 100  mult */
+			time_hour = DIV_ROUND_CLOSEST((batt_full_design_capacity * (BATT_SOC_FULL - capacity)),
+											battery_current);
+			time_min = time_hour * HOUR_PER_MIN / BATT_SOC_FULL + CHARGE_CV_ESTIMATE_MIN;
+			pr_info("time_hour=%d, time_min=%d\n", time_hour, time_min);
+		} else if (capacity >= 0 && capacity <= BATT_SOC_FULL) {
+			time_hour = DIV_ROUND_CLOSEST((batt_full_design_capacity * (BATT_SOC_FULL - capacity)),
+											STANDARD_HOST_CURRENT);
+			time_min = time_hour * HOUR_PER_MIN / BATT_SOC_FULL + CHARGE_CV_ESTIMATE_MIN;
+			pr_info("time_hour=%d, time_min=%d init\n", time_hour, time_min);
+		} else {
+			time_min = MAX_CHARGING_FULL_TIME_MIN;
+			pr_info("time_hour=%d, time_min=%d defult\n", time_hour, time_min);
+		}
+		charge_remain_time = time_min;
+
+		if ((time_min_last != -1) && (time_min > time_min_last)) {
+			charge_remain_time = time_min_last;
+		}
+
+		if (charge_remain_time > MAX_CHARGING_FULL_TIME_MIN) {
+			charge_remain_time = MAX_CHARGING_FULL_TIME_MIN;
+		}
+
+		if (time_min_last != time_min) {
+			time_min_last = time_min;
+		}
+	}
+}
+#endif
+
+static void update_heartbeat(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct charger_manager *info = container_of(dwork, struct charger_manager,
+								update_heartbeat_work);
+	int period = 0;
+	int cap = 0, status = 0;
+	int bat_current = 0;
+	int chg_current = 0;
+	int health = 0;
+
+	/* update state */
+	if (info == NULL) {
+		chr_err("charger fatal error:info=null\n!!");
+		return;
+	}
+	mutex_lock(&info->zte_update_lock);
+	cap = battery_get_uisoc();
+	bat_current = -1 * (battery_get_bat_current()/10);
+	chg_current =  pmic_get_charging_current();
+	status = get_bat_status();
+	health = battery_health_status;
+	pr_info("cap=%d, bat_current=%d, chg_current=%d, status=%d, health=%d chr_type=%d\n",
+		cap, bat_current, chg_current, status, health, info->chr_type);
+
+	period = g_update_period_ms;
+#ifdef ZTE_CHARGER_TYPE_OEM
+	if (is_power_path_supported()) {
+		zte_detect_charger_oem_type(info, bat_current, cap, &period, status);
+		zte_estimate_charge_remain_time(info, (-1) * bat_current, cap, status);
+	} else {
+		zte_detect_charger_oem_type(info, (-1) * chg_current, cap, &period, status);
+		zte_estimate_charge_remain_time(info, chg_current, cap, status);
+	}
+#endif
+
+	if (info->chr_type == CHARGER_UNKNOWN) {
+		charger_update_data(info);
+		if (info->enable_sw_jeita == true)
+			do_sw_jeita_state_machine(info);
+		mtk_charger_notify_battery_health_status();
+	}
+
+	mutex_unlock(&info->zte_update_lock);
+	schedule_delayed_work(&info->update_heartbeat_work,
+					  round_jiffies_relative(msecs_to_jiffies(period)));
+}
+
+static char *battery_chg_status_name[] = {
+	"Unknown", "Charging", "Discharging", "Not charging", "Full", "Cmd Discharging"
+};
+
 static int charger_routine_thread(void *arg)
 {
 	struct charger_manager *info = arg;
 	unsigned long flags;
 	bool is_charger_on;
 	int bat_current, chg_current;
+	uint chg_status = 0;
 
 	while (1) {
 		wait_event(info->wait_que,
@@ -1544,9 +1944,11 @@ static int charger_routine_thread(void *arg)
 		info->charger_thread_timeout = false;
 		bat_current = battery_get_bat_current();
 		chg_current = pmic_get_charging_current();
-		chr_err("Vbat=%d,Ibat=%d,I=%d,VChr=%d,T=%d,Soc=%d:%d,CT:%d:%d hv:%d pd:%d:%d\n",
-			battery_get_bat_voltage(), bat_current, chg_current,
-			battery_get_vbus(), battery_get_bat_temperature(),
+		chg_status = get_bat_status();
+		charger_update_data(info);
+		chr_err("Vbat=%d,Ibat=%d,I=%d,Status=%s,VChr=%d,T=%d,Soc=%d:%d,CT:%d:%d hv:%d pd:%d:%d\n",
+			battery_get_bat_voltage(), bat_current, chg_current, battery_chg_status_name[chg_status],
+			battery_get_vbus(), info->battery_temp,
 			battery_get_soc(), battery_get_uisoc(),
 			mt_get_charger_type(), info->chr_type,
 			info->enable_hv_charging, info->pd_type,
@@ -1562,10 +1964,21 @@ static int charger_routine_thread(void *arg)
 		if (info->charger_thread_polling == true)
 			mtk_charger_start_timer(info);
 
-		charger_update_data(info);
 		check_battery_exist(info);
 		charger_check_status(info);
 		kpoc_power_off_check(info);
+		mtk_charger_notify_battery_health_status();
+
+		if (info->chr_type != CHARGER_UNKNOWN && charger_ic_notify_eoc == true) {
+			if ((battery_health_status == POWER_SUPPLY_HEALTH_GOOD && battery_get_uisoc() >= 100) ||
+				(battery_health_status == POWER_SUPPLY_HEALTH_WARM) ||
+				(battery_health_status == POWER_SUPPLY_HEALTH_COOL && battery_get_uisoc() >= 100)) {
+				chr_err("charger update battery FULL status\n");
+				mtk_charger_notify_battery_full();
+				zte_power_supply_changed();
+				charger_ic_notify_eoc = false;
+			}
+		}
 
 		if (is_disable_charger() == false) {
 			if (is_charger_on == true) {
@@ -1615,6 +2028,11 @@ static int mtk_charger_parse_dt(struct charger_manager *info,
 		mtk_dual_switch_charging_init(info);
 	}
 #endif
+
+	if (strcmp(info->algorithm_name, "LinearCharging") == 0) {
+		pr_info("%s: LinearCharging\n", __func__);
+		mtk_linear_charging_init(info);
+	}
 
 	info->disable_charger = of_property_read_bool(np, "disable_charger");
 	info->enable_sw_safety_timer =
@@ -1801,6 +2219,68 @@ static int mtk_charger_parse_dt(struct charger_manager *info,
 			JEITA_TEMP_BELOW_T0_CV);
 		info->data.jeita_temp_below_t0_cv = JEITA_TEMP_BELOW_T0_CV;
 	}
+
+	/*sw charging current*/
+	if (of_property_read_u32(np, "jeita_temp_above_t4_chg_current", &val) >= 0) {
+		info->data.jeita_temp_above_t4_chg_current = val;
+	} else {
+		chr_err(
+			"use default jeita_temp_above_t4_chg_current:%d\n", JEITA_DEFAULT_CURRENT);
+		info->data.jeita_temp_above_t4_chg_current = JEITA_DEFAULT_CURRENT;
+	}
+	pr_info("[SW_JEITA] chg_current: jeita_temp_above_t4_chg_current: %duA\n",
+			info->data.jeita_temp_above_t4_chg_current);
+
+	if (of_property_read_u32(np, "jeita_temp_t3_to_t4_chg_current", &val) >= 0) {
+		info->data.jeita_temp_t3_to_t4_chg_current = val;
+	} else {
+		chr_err(
+			"use default jeita_temp_t3_to_t4_chg_current:%d\n", JEITA_DEFAULT_CURRENT);
+		info->data.jeita_temp_t3_to_t4_chg_current = JEITA_DEFAULT_CURRENT;
+	}
+	pr_info("[SW_JEITA] chg_current: jeita_temp_t3_to_t4_chg_current: %duA\n",
+			info->data.jeita_temp_t3_to_t4_chg_current);
+
+	if (of_property_read_u32(np, "jeita_temp_t2_to_t3_chg_current", &val) >= 0) {
+		info->data.jeita_temp_t2_to_t3_chg_current = val;
+	} else {
+		chr_err(
+			"use default jeita_temp_t2_to_t3_chg_current:%d\n", JEITA_DEFAULT_CURRENT);
+		info->data.jeita_temp_t2_to_t3_chg_current = JEITA_DEFAULT_CURRENT;
+	}
+	pr_info("[SW_JEITA] chg_current: jeita_temp_t2_to_t3_chg_current: %duA\n",
+			info->data.jeita_temp_t2_to_t3_chg_current);
+
+	if (of_property_read_u32(np, "jeita_temp_t1_to_t2_chg_current", &val) >= 0) {
+		info->data.jeita_temp_t1_to_t2_chg_current = val;
+	} else {
+		chr_err(
+			"use default jeita_temp_t1_to_t2_chg_current:%d\n", JEITA_DEFAULT_CURRENT);
+		info->data.jeita_temp_t1_to_t2_chg_current = JEITA_DEFAULT_CURRENT;
+	}
+	pr_info("[SW_JEITA] chg_current: jeita_temp_t1_to_t2_chg_current: %duA\n",
+			info->data.jeita_temp_t1_to_t2_chg_current);
+
+	if (of_property_read_u32(np, "jeita_temp_t0_to_t1_chg_current", &val) >= 0) {
+		info->data.jeita_temp_t0_to_t1_chg_current = val;
+	} else {
+		chr_err(
+			"use default jeita_temp_t0_to_t1_chg_current:%d\n", JEITA_DEFAULT_CURRENT);
+		info->data.jeita_temp_t0_to_t1_chg_current = JEITA_DEFAULT_CURRENT;
+	}
+	pr_info("[SW_JEITA] chg_current: jeita_temp_t0_to_t1_chg_current: %duA\n",
+			info->data.jeita_temp_t0_to_t1_chg_current);
+
+	if (of_property_read_u32(np, "jeita_temp_below_t0_chg_current", &val) >= 0) {
+		info->data.jeita_temp_below_t0_chg_current = val;
+	} else {
+		chr_err(
+			"use default jeita_temp_below_t0_chg_current:%d\n", JEITA_DEFAULT_CURRENT);
+		info->data.jeita_temp_below_t0_chg_current = JEITA_DEFAULT_CURRENT;
+	}
+	pr_info("[SW_JEITA] chg_current: jeita_temp_below_t0_chg_current: %duA\n",
+			info->data.jeita_temp_below_t0_chg_current);
+
 
 	if (of_property_read_u32(np, "temp_t4_thres", &val) >= 0)
 		info->data.temp_t4_thres = val;
@@ -2654,8 +3134,11 @@ static int mtk_charger_probe(struct platform_device *pdev)
 	info->chg1_data.thermal_charging_current_limit = -1;
 	info->chg1_data.thermal_input_current_limit = -1;
 	info->chg1_data.input_current_limit_by_aicl = -1;
+	info->chg1_data.policy_input_current_limit = -1;
+
 	info->chg2_data.thermal_charging_current_limit = -1;
 	info->chg2_data.thermal_input_current_limit = -1;
+	info->chg2_data.policy_input_current_limit = -1;
 
 	info->sw_jeita.error_recovery_flag = true;
 
@@ -2716,6 +3199,17 @@ static int mtk_charger_probe(struct platform_device *pdev)
 		}
 	}
 	mutex_unlock(&consumer_mutex);
+
+	info->zte_usb_valid_wake_source = wakeup_source_register("zte_charger_wake_lock");
+	if (!info->zte_usb_valid_wake_source) {
+		pr_err("zte_usb_valid_wake_source register failed\n");
+	}
+
+	mutex_init(&info->zte_update_lock);
+	INIT_DELAYED_WORK(&info->update_heartbeat_work, update_heartbeat);
+	schedule_delayed_work(&info->update_heartbeat_work,
+			round_jiffies_relative(msecs_to_jiffies(5000)));
+
 	info->chg1_consumer =
 		charger_manager_get_by_name(&pdev->dev, "charger_port1");
 	info->init_done = true;

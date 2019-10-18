@@ -863,6 +863,318 @@ static ssize_t mmc_fwrev_show(struct device *dev,
 }
 
 static DEVICE_ATTR(fwrev, S_IRUGO, mmc_fwrev_show, NULL);
+/*add by ssy@03-14-2011: export emmc_info for e-mode*/
+typedef struct _mmc_manf_info {
+	int id;
+	char *name;
+} mmc_manf_info;
+
+mmc_manf_info man_list[] = {
+	{0x02, "Sandisk"},
+	{0x11, "Toshiba"},
+	{0x13, "Micro"},
+	{0x15, "Sumsung"},
+	{0x45, "Sandisk"},
+	{0x70, "Kingston"},
+	{0x90, "Hynix"},
+	{0xF4, "Biwin"},
+	{0x88, "longsys"},
+};
+
+struct mmc_card proc_card;/*wangxiaomei add*/
+static ssize_t mmc_info_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct mmc_card *card = container_of(dev, struct mmc_card, dev);
+	int card_block_size = 512;
+	char *memtype = "UNKNOWN";
+	char *manfname = "UNKNOWN";
+	int len = 2048;
+	int i = 0;
+
+	switch (card->type) {
+	case MMC_TYPE_MMC:
+		memtype = "MMC";
+		break;
+
+	case MMC_TYPE_SD:
+		memtype = "SD";
+		break;
+
+	case MMC_TYPE_SDIO:
+		memtype = "SDIO";
+		break;
+
+	default:
+		memtype = "UNKNOWN";
+		break;
+	}
+
+	for (i = 0; i < ARRAY_SIZE(man_list); i++) {
+		if (man_list[i].id == card->cid.manfid) {
+			manfname = man_list[i].name;
+			break;
+		}
+	}
+
+return snprintf(buf, len, "Memory Type: %s\n"
+		"Size(sectors): %u\n"
+		"Block Length (bytes): %d\n"
+		"Size (kB): %u\n"
+		"Manufacture ID: 0x%06x(%s)\n"
+		"OEM/Application ID: 0x%04x\n"
+		"Product Name: %s\n"
+		"Product serial #: 0x%08x\n"
+		"FirmWare Revision (cid): 0x%x\n"
+		"HardWare Revision: 0x%x\n"
+		"Manufacturing Date: %02d/%04d\n",
+		memtype,
+		card->ext_csd.sectors,
+		card_block_size,
+		(card->ext_csd.sectors / 1024) * card_block_size,
+		card->cid.manfid, manfname,
+		card->cid.oemid,
+		card->cid.prod_name,
+		card->cid.serial,
+		card->cid.fwrev,
+		card->cid.hwrev,
+		card->cid.month, card->cid.year);
+}
+
+static DEVICE_ATTR(info, S_IRUGO, mmc_info_show, NULL);
+/*end*/
+/*[ECID:000000] ZTEBSP wangxiaomei record eMMC info into /proc/driver/emmc file, 20131108, begin*/
+#include <linux/proc_fs.h>
+#include <linux/string_helpers.h>
+static struct proc_dir_entry *d_entry;
+static char emmc_module_name[64] = "";
+
+static int emmc_proc_show(struct seq_file *m, void *v)
+{
+	seq_printf(m, "emmc type: %s\n", emmc_module_name);
+	return 0;
+}
+
+static int emmc_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, emmc_proc_show, NULL);
+}
+
+static const struct file_operations emmc_proc_fops = {
+	.open		= emmc_proc_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+void init_emmc_info_proc(struct mmc_host *host);
+void deinit_emmc_info_proc(void);
+
+void init_emmc_id_proc(struct mmc_host *host);
+void deinit_emmc_id_proc(void);
+void init_ddr_id_proc(struct mmc_host *host);
+void deinit_ddr_id_proc(void);
+
+
+/**
+ * string_get_size - get the size in the specified units
+ * @size:	The size to be converted
+ * @units:	units to use (powers of 1000 or 1024)
+ * @buf:	buffer to format to
+ * @len:	length of buffer
+ *
+ * This function returns a string formatted to 3 significant figures
+ * giving the size in the required units.  Returns 0 on success or
+ * error on failure.  @buf is always zero terminated.
+ *
+ */
+static int zte_string_get_size(u64 size, const enum string_size_units units,
+		    char *buf, int len)
+{
+	static const char *const units_10[] = {
+		"B", "kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB", NULL
+	};
+	static const char *const units_2[] = {
+		"B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB",
+		NULL
+	};
+	static const char *const *const units_str[] = {
+		[STRING_UNITS_10] = units_10,
+		[STRING_UNITS_2] = units_2,
+	};
+	static const unsigned int divisor[] = {
+		[STRING_UNITS_10] = 1000,
+		[STRING_UNITS_2] = 1024,
+	};
+	int i, j;
+	u64 remainder = 0, sf_cap;
+	char tmp[8];
+
+	tmp[0] = '\0';
+	i = 0;
+	if (size >= divisor[units]) {
+		while (size >= divisor[units] && units_str[units][i]) {
+			remainder = do_div(size, divisor[units]);
+			i++;
+		}
+
+		sf_cap = size;
+		for (j = 0; sf_cap*10 < 1000; j++)
+			sf_cap *= 10;
+
+		if (j) {
+			remainder *= 1000;
+			do_div(remainder, divisor[units]);
+			snprintf(tmp, sizeof(tmp), ".%02lld",
+				 (unsigned long long)remainder);
+			tmp[2] = '\0';
+		}
+	}
+
+	snprintf(buf, len, "%lld%sGB", (unsigned long long)size,
+		 tmp);
+
+	return 0;
+}
+
+static int emmc_id_proc_show(struct seq_file *m, void *v)
+{
+	struct mmc_card *card = &proc_card;
+
+	char *manfname = "UNKNOWN";
+	int i = 0;
+	char cap_str[10];
+
+	for (i = 0; i < ARRAY_SIZE(man_list); i++) {
+		if (man_list[i].id == card->cid.manfid) {
+			manfname = man_list[i].name;
+			break;
+		}
+	}
+
+	zte_string_get_size((u64)(card->ext_csd.sectors) * 512, STRING_UNITS_10, cap_str, sizeof(cap_str));
+
+	seq_printf(m, "%s?%s?%02d/%04d?%s?NA\n",
+					manfname,
+					card->cid.prod_name,
+					card->cid.month, card->cid.year,
+					cap_str);
+
+	return 0;
+
+}
+
+static int emmc_id_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, emmc_id_proc_show, NULL);
+}
+
+static const struct file_operations emmc_id_proc_fops = {
+	.open		= emmc_id_proc_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+
+void init_emmc_id_proc(struct mmc_host *host)
+{
+
+	struct proc_dir_entry *emmc_info;
+
+	proc_card = *(host->card);
+
+	emmc_info = proc_create("driver/emmc_id", S_IFREG | S_IRUGO, NULL, &emmc_id_proc_fops);
+
+	if (emmc_info == NULL)
+		pr_err("ZJL:Unable to create ddr_info\n");
+
+	return;
+
+}
+
+void deinit_emmc_id_proc(void)
+{
+	if (d_entry != NULL) {
+		remove_proc_entry("driver/emmc_id", NULL);
+		d_entry = NULL;
+	}
+}
+extern unsigned long totalram_pages;
+static int ddr_id_proc_show(struct seq_file *m, void *v)
+{
+	struct mmc_card *card = &proc_card;
+
+	char *manfname = "UNKNOWN";
+	int i = 0;
+	unsigned long memory;
+
+	for (i = 0; i < ARRAY_SIZE(man_list); i++) {
+		if (man_list[i].id == card->cid.manfid) {
+			manfname = man_list[i].name;
+			break;
+		}
+	}
+
+	memory = totalram_pages << (PAGE_SHIFT - 10);
+	/*1G=1048576K*/
+	if (memory < 1048576)
+		seq_printf(m,
+			"%s?NA?NA?1GB?LPDDR3\n",
+			manfname);
+	else if (memory < (1048576*2))
+		seq_printf(m,
+			"%s?NA?NA?2GB?LPDDR3\n",
+			manfname);
+	else if (memory < (1048576*3))
+		seq_printf(m,
+			"%s?NA?NA?3GB?LPDDR3\n",
+			manfname);
+	else
+		seq_printf(m,
+			"%s?NA?NA?4GB?LPDDR3\n",
+			manfname);
+
+	return 0;
+
+}
+
+static int ddr_id_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, ddr_id_proc_show, NULL);
+}
+
+
+static const struct file_operations ddr_id_proc_fops = {
+	.open		= ddr_id_proc_open,
+	.read		= seq_read,
+	.llseek		= seq_lseek,
+	.release	= single_release,
+};
+
+
+void init_ddr_id_proc(struct mmc_host *host)
+{
+
+	struct proc_dir_entry *ddr_info;
+
+	proc_card = *(host->card);
+
+	ddr_info = proc_create("driver/ddr_id", S_IFREG | S_IRUGO, NULL, &ddr_id_proc_fops);
+
+	if (ddr_info == NULL)
+		pr_err("ZJL:Unable to create ddr_info\n");
+
+	return;
+
+}
+
+void deinit_ddr_id_proc(void)
+{
+	if (d_entry != NULL) {
+		remove_proc_entry("driver/ddr_id", NULL);
+		d_entry = NULL;
+	}
+}
+/*[ECID:000000] ZTEBSP wangxiaomei record eMMC info into /proc/driver/emmc file, 20131108, end*/
 
 static ssize_t mmc_dsr_show(struct device *dev,
 			    struct device_attribute *attr,
@@ -900,6 +1212,7 @@ static struct attribute *mmc_std_attrs[] = {
 	&dev_attr_serial.attr,
 	&dev_attr_enhanced_area_offset.attr,
 	&dev_attr_enhanced_area_size.attr,
+	&dev_attr_info.attr,
 	&dev_attr_raw_rpmb_size_mult.attr,
 	&dev_attr_rel_sectors.attr,
 	&dev_attr_ocr.attr,
@@ -2378,6 +2691,7 @@ int mmc_attach_mmc(struct mmc_host *host)
 #ifdef CONFIG_MTK_EMMC_CQ_SUPPORT
 	int i;
 #endif
+	static bool emmc_proc_init = false; /* record eMMC info into /proc/driver/emmc file */
 
 	BUG_ON(!host);
 	WARN_ON(!host->claimed);
@@ -2419,6 +2733,14 @@ int mmc_attach_mmc(struct mmc_host *host)
 	err = mmc_init_card(host, rocr, NULL);
 	if (err)
 		goto err;
+
+		/*[ECID:000000] ZTEBSP wangxiaomei record eMMC info into /proc/driver/emmc file, 20131108, begin*/
+		if (false == emmc_proc_init) {
+			init_emmc_id_proc(host);
+			init_ddr_id_proc(host);
+			emmc_proc_init = true;
+		}
+		/*[ECID:000000] ZTEBSP wangxiaomei record eMMC info into /proc/driver/emmc file, 20131108, end*/
 
 	mmc_release_host(host);
 

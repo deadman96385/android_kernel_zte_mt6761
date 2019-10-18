@@ -27,9 +27,11 @@ subdir-ccflags-y += -I$(srctree)/drivers/misc/mediatek/typec/tcpc/inc
 subdir-ccflags-y += -I$(srctree)/drivers/power/supply/mediatek/misc/
 
 obj-y += charger_class.o mtk_charger.o mtk_switch_charging.o mtk_pdc_intf.o\
-	 mtk_chg_type_det.o mtk_pe40_intf.o
+	 mtk_chg_type_det.o mtk_pe40_intf.o mtk_linear_charging.o
 
 obj-$(CONFIG_MTK_DUAL_CHARGER_SUPPORT) += mtk_dual_switch_charging.o
 obj-$(CONFIG_MTK_PUMP_EXPRESS_PLUS_SUPPORT) += mtk_pe_intf.o
 obj-$(CONFIG_MTK_PUMP_EXPRESS_PLUS_20_SUPPORT) += mtk_pe20_intf.o
 obj-$(CONFIG_CHARGER_RT9465) += rt9465.o
+obj-$(CONFIG_CHARGER_BQ2560X)	+= bq2560x_charger.o
+obj-$(CONFIG_CHARGER_HL7019X)	+= hl7019x_charger.o

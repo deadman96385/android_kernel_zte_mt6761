@@ -1012,9 +1012,7 @@ static int spi_transfer_one_message(struct spi_master *master,
 				ret = 0;
 				ms = 8LL * 1000LL * xfer->len;
 				do_div(ms, xfer->speed_hz);
-				/* Increase spi transfer tolerance to 2s */
-				/* To aviod timeout when OS is busy.*/
-				ms += ms + 2000;
+				ms += ms + 200; /* some tolerance */
 
 				if (ms > UINT_MAX)
 					ms = UINT_MAX;
@@ -1817,7 +1815,7 @@ struct spi_master *spi_alloc_master(struct device *dev, unsigned size)
 
 	device_initialize(&master->dev);
 	master->bus_num = -1;
-	master->num_chipselect = 1;
+	master->num_chipselect = 3;  /* changed to 3 spi devices for each spi bus */
 	master->dev.class = &spi_master_class;
 	master->dev.parent = dev;
 	pm_suspend_ignore_children(&master->dev, true);

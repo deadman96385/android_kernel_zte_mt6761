@@ -1,0 +1,74 @@
+/*
+ * when you want to delete some nodes or property, modify this dtsi.
+ */
+
+/{
+	batt_cap_learn {
+		compatible = "zte,battery-capacity-learning";
+		bcl,enable = <1>;
+		bcl,retry-times = <10>;
+		bcl,timer-period = <100>;/*ms*/
+		bcl,max-start-capacity = <30>;
+		bcl,max-temp-decidegc = <450>;
+		bcl,min-temp-decidegc = <150>;
+		bcl,max-limit-deciperc = <100>;
+		bcl,min-limit-deciperc = <70>;
+		bcl,max-increment-deciperc = <2>;
+		bcl,max-decrement-deciperc = <2>;
+		bcl,bms-phy-name = "charger";
+		bcl,battery-phy-name = "battery";
+		/*bit7: 0: use zte algorithm calc age; 1: use platform algorithm calc age*/
+		/*bit4: enable zte algorithm*/
+		/*bit3: enable platform algorithm*/
+		/*bit0: platform algorithm mode 0: integral mode; 1: delta mode*/
+		bcl,algorithm-select = <0x89>;
+
+		bcl_battery_count0 {
+			bcl,battery-id = <0>;
+			/*"real capacity" = "rated capacity" - "voltage diff" - "topoff diff"*/
+			/*TMB TEST REAL CAPACITY 92%*/
+			bcl,battery-real-capacity = <3588000>;
+			bcl,battery-rated-capacity = <3900000>;
+			bcl,battery-limit-charge-voltage = <4350>;
+			bcl,reduction-50mv-rate = <50>;/*rate * 10*/
+			bcl,age-lose-rate = <1>;/*rate * 10*/
+		};
+
+		bcl_battery_count1 {
+			bcl,battery-id = <1>;
+			/*"real capacity" = "rated capacity" - "voltage diff" - "topoff diff"*/
+			/*VK TEST REAL CAPACITY 95%*/
+			bcl,battery-real-capacity = <3588000>;
+			bcl,battery-rated-capacity = <3900000>;
+			bcl,battery-limit-charge-voltage = <4350>;
+			bcl,reduction-50mv-rate = <50>;/*rate * 10*/
+			bcl,age-lose-rate = <1>;/*rate * 10*/
+		};
+	};
+
+	charge_arbitrate_service {
+		compatible = "zte,charge-arbitrate-service";
+		cas,enable = <1>;
+		cas,retry-times = <10>;
+		cas,timeout-seconds = <30>;/*s*/
+		cas,temperature-warm = <430>;
+		cas,temperature-warm-recov = <20>;
+		cas,temperature-cool = <80>;
+		cas,temperature-cool-recov = <20>;
+		cas,normal-topoff = <4>;
+		cas,abnormal-topoff = <8>;
+		cas,force-full-aging = <0>;
+		cas,full-raw-soc = <100>;
+		cas,subsidiary-phy-name = "charger";
+		cas,battery-phy-name = "battery";
+		cas,bcl-phy-name = "bcl";
+		cas,interface-phy-name = "interface";
+		/* age, fcv, fcc, rech_soc_1st, rech_soc_2st rech_vol_1st, rech_vol_2st **/
+		cas,age-data = <100 4352000 2000000 0 0 100 200
+				95 4332000 1900000 0 0 150 250
+				90 4312000 1800000 0 0 200 300
+				85 4292000 1700000 0 0 250 350
+				80 4272000 1600000 0 0 300 400
+				75 4252000 1500000 0 0 350 450>;
+	};
+};

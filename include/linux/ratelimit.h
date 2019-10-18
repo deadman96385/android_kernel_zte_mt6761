@@ -6,7 +6,12 @@
 #include <linux/spinlock.h>
 
 #define DEFAULT_RATELIMIT_INTERVAL	(5 * HZ)
-#define DEFAULT_RATELIMIT_BURST		10
+
+#if defined(CONFIG_ZTE_USB_TEST)
+	#define DEFAULT_RATELIMIT_BURST		100000
+#else
+	#define DEFAULT_RATELIMIT_BURST		10
+#endif
 
 /* issue num suppressed message on exit */
 #define RATELIMIT_MSG_ON_RELEASE	BIT(0)

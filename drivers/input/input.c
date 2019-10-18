@@ -245,7 +245,7 @@ static int input_handle_abs_event(struct input_dev *dev,
 	if (pold) {
 		*pval = input_defuzz_abs_event(*pval, *pold,
 						dev->absinfo[code].fuzz);
-		if (*pold == *pval)
+		if (*pold == *pval && code != ABS_DISTANCE)
 			return INPUT_IGNORE_EVENT;
 
 		*pold = *pval;
@@ -678,8 +678,10 @@ static void input_dev_release_keys(struct input_dev *dev)
 
 	if (is_event_supported(EV_KEY, dev->evbit, EV_MAX)) {
 		for_each_set_bit(code, dev->key, KEY_CNT) {
+			if (code != KEY_F21){
 			input_pass_event(dev, EV_KEY, code, 0);
 			need_sync = true;
+				}
 		}
 
 		if (need_sync)

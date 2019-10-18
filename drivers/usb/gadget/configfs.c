@@ -1335,6 +1335,7 @@ static int configfs_composite_bind(struct usb_gadget *gadget,
 	struct usb_string		*s;
 	unsigned			i;
 	int				ret;
+	unsigned			serial_empty = 0;
 
 	pr_info("%s\n", __func__);
 
@@ -1379,6 +1380,10 @@ static int configfs_composite_bind(struct usb_gadget *gadget,
 				gs->manufacturer;
 			gs->strings[USB_GADGET_PRODUCT_IDX].s = gs->product;
 			gs->strings[USB_GADGET_SERIAL_IDX].s = gs->serialnumber;
+			if ((gs->serialnumber[0] == 0x0) || (gs->serialnumber[0] == 0x20)) {
+				serial_empty = 1;
+			}
+
 			i++;
 		}
 		gi->gstrings[i] = NULL;
@@ -1391,7 +1396,10 @@ static int configfs_composite_bind(struct usb_gadget *gadget,
 
 		gi->cdev.desc.iManufacturer = s[USB_GADGET_MANUFACTURER_IDX].id;
 		gi->cdev.desc.iProduct = s[USB_GADGET_PRODUCT_IDX].id;
-		gi->cdev.desc.iSerialNumber = s[USB_GADGET_SERIAL_IDX].id;
+		if (serial_empty == 1)
+			gi->cdev.desc.iSerialNumber = 0;
+		else
+			gi->cdev.desc.iSerialNumber = s[USB_GADGET_SERIAL_IDX].id;
 
 		if (strlen(s[USB_GADGET_SERIAL_IDX].s) == 0)
 			gi->cdev.desc.iSerialNumber = 0;
@@ -1482,10 +1490,17 @@ static void android_work(struct work_struct *data)
 	char *disconnected[2] = { "USB_STATE=DISCONNECTED", NULL };
 	char *connected[2]    = { "USB_STATE=CONNECTED", NULL };
 	char *configured[2]   = { "USB_STATE=CONFIGURED", NULL };
-	/* 0-connected 1-configured 2-disconnected*/
-	bool status[3] = { false, false, false };
+	/* Add for HW/SW connect */
+	char *hwdisconnected[2] = { "USB_STATE=HWDISCONNECTED", NULL };
+
+	/* 0-connected 1-configured 2-disconnected 3-is_hwconnected*/
+	bool status[4] = { false, false, false, false };
 	unsigned long flags;
 	bool uevent_sent = false;
+
+	/* be aware this could not be used in non-sleep context */
+	if (!usb_cable_connected())
+		status[3] = true;
 
 	spin_lock_irqsave(&cdev->lock, flags);
 	if (cdev->config)
@@ -1518,6 +1533,13 @@ static void android_work(struct work_struct *data)
 		kobject_uevent_env(&android_device->kobj,
 					KOBJ_CHANGE, disconnected);
 		pr_info("%s: sent uevent %s\n", __func__, disconnected[0]);
+		uevent_sent = true;
+	}
+
+	if (status[3]) {
+		kobject_uevent_env(&android_device->kobj,
+					KOBJ_CHANGE, hwdisconnected);
+		pr_info("%s: sent uevent %s\n", __func__, hwdisconnected[0]);
 		uevent_sent = true;
 	}
 

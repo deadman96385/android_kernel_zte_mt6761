@@ -87,6 +87,7 @@
 /* ============================================================ */
 struct mtk_battery gm;
 
+int batt_full_design_capacity = 0;
 /* ============================================================ */
 /* gauge hal interface */
 /* ============================================================ */
@@ -149,6 +150,7 @@ int gauge_reset_hw(void)
 
 	/* must handle sw_ncar before reset car */
 	fg_sw_bat_cycle_accu();
+	gm.car_backup = gm.bat_cycle_car;
 	gm.bat_cycle_car = 0;
 
 	gauge_coulomb_before_reset();
@@ -372,8 +374,6 @@ void fgauge_get_profile_id(void)
 void fg_custom_init_from_header(void)
 {
 	int i, j;
-
-	fgauge_get_profile_id();
 
 	fg_cust_data.versionID1 = FG_DAEMON_CMD_FROM_USER_NUMBER;
 	fg_cust_data.versionID2 = sizeof(fg_cust_data);
@@ -785,7 +785,68 @@ static void fg_custom_parse_table(const struct device_node *np,
 	}
 }
 
+extern int IMM_GetOneChannelValue_Cali(int Channel, int *voltage);
+int fg_custom_get_bat_id_from_dts(struct device_node *np, int *bat_id_dts)
+{
+	int bat_num = 0;
+	int bat_id_uv_real = 0;
+	int bat_id_uv = 0;
+	int bat_id_uv_max = 0;
+	int bat_id_uv_min = 0;
+	char *bat_type = NULL;
+	struct device_node *node = NULL;
+	int ret = 0;
+	bool get_bset_id = false;
 
+	if (of_property_read_u32(np, "bat_num", &bat_num)) {
+		bm_err("%s, get bat_num failed!\n", __func__);
+		ret = 1;
+	}
+	bm_err("%s, bat_num: %d\n", __func__, bat_num);
+
+	if (IMM_GetOneChannelValue_Cali(BATTERY_ID_CHANNEL_NUM, &bat_id_uv_real)) {
+		bm_err("%s, get bat_id_uv_real failed!\n", __func__);
+		ret = 1;
+	}
+	bm_err("%s, channel %d, bat_id_uv_real: %duv\n", __func__, BATTERY_ID_CHANNEL_NUM, bat_id_uv_real);
+
+	if (ret != 0)
+		return ret;
+
+	*bat_id_dts = 0;
+	for_each_child_of_node(np, node) {
+		if (of_property_read_string(node, "bat_type", (const char **)&bat_type)) {
+			*bat_id_dts = 0;
+			break;
+		}
+		bm_err("%s, bat_type: %s\n", __func__, bat_type);
+
+		if (of_property_read_u32(node, "bat_id_uv", &bat_id_uv)) {
+			*bat_id_dts = 0;
+			break;
+		}
+		bm_err("%s, bat_id_uv: %duv\n", __func__, bat_id_uv);
+
+		bat_id_uv_min = (95 * bat_id_uv) / 100;
+		bat_id_uv_max = (105 * bat_id_uv) / 100;
+		if ((bat_id_uv_real > bat_id_uv_min) && (bat_id_uv_real < bat_id_uv_max)) {
+			get_bset_id = true;
+		}
+
+		if (get_bset_id == false)
+			*bat_id_dts = *bat_id_dts + 1;
+	}
+
+	if (get_bset_id) {
+		bm_err("%s, the best battery is bat %d\n", __func__, *bat_id_dts);
+	} else {
+		*bat_id_dts = 0;
+		bm_err("%s, get the best battery failed, use bat %d\n", __func__, *bat_id_dts);
+	}
+	return ret;
+}
+
+#define DEFAULT_FULL_DESIGN_CAPACITY 3200
 void fg_custom_init_from_dts(struct platform_device *dev)
 {
 	struct device_node *np = dev->dev.of_node;
@@ -793,6 +854,7 @@ void fg_custom_init_from_dts(struct platform_device *dev)
 	unsigned int val_0, val_1, val_2, val_3;
 	int ret, ret0, ret1, ret2, ret3;
 	int bat_id;
+	int bat_id_dts = -1;
 #ifdef CONFIG_MTK_ADDITIONAL_BATTERY_TABLE
 	unsigned int val_4;
 	int ret4;
@@ -801,6 +863,15 @@ void fg_custom_init_from_dts(struct platform_device *dev)
 	fgauge_get_profile_id();
 	bat_id = gm.battery_id;
 
+	ret = fg_custom_get_bat_id_from_dts(np, &bat_id_dts);
+	if (ret == 0) {
+		bat_id = bat_id_dts;
+		gm.battery_id = bat_id;
+	} else {
+		bm_err("%s: read battery id error: %d\n", __func__, ret);
+	}
+
+	fg_custom_init_from_header();
 	bm_err("%s\n", __func__);
 
 	if (!of_property_read_u32(np, "DISABLE_MTKBATTERY", &val)) {
@@ -818,9 +889,15 @@ void fg_custom_init_from_dts(struct platform_device *dev)
 	} else {
 		bm_err("read RECORD_LOG fail\n");
 	}
+	if (!of_property_read_u32(np, "BATT_FULL_DESIGN_CAPACITY", &val)) {
+		batt_full_design_capacity = (int)val;
+		bm_err("Get BATT_FULL_DESIGN_CAPACITY: %d\n", batt_full_design_capacity);
+	} else {
+		batt_full_design_capacity = DEFAULT_FULL_DESIGN_CAPACITY;
+		bm_err("Get BATT_FULL_DESIGN_CAPACITY failed\n");
+	}
 
-
-	if (ACTIVE_TABLE == 0 && MULTI_BATTERY == 0) {
+	if (ACTIVE_TABLE == 0 && MULTI_BATTERY == 0 && bat_id == 0) {
 		if (!of_property_read_u32(np, "g_FG_PSEUDO100_T0", &val)) {
 			fg_table_cust_data.fg_profile[0].pseudo100 =
 				(int)val * UNIT_TRANS_100;
@@ -3936,7 +4013,6 @@ void mtk_battery_init(struct platform_device *dev)
 	} else
 		bm_err("gauge_dev is NULL\n");
 
-	fg_custom_init_from_header();
 #ifdef CONFIG_OF
 	fg_custom_init_from_dts(dev);
 #endif

@@ -137,6 +137,11 @@ struct charger_ops {
 	int (*get_fod_status)(struct charger_device *dev, u8 *status);
 	int (*enable_fod_oneshot)(struct charger_device *dev, bool en);
 	int (*is_typec_ot)(struct charger_device *dev, bool *ot);
+
+	/* enable/disable ship mode */
+	int (*set_ship_mode)(struct charger_device *, bool en);
+	int (*get_ship_mode)(struct charger_device *, bool *en);
+
 };
 
 static inline

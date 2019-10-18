@@ -115,6 +115,7 @@ struct sw_jeita_data {
 	int sm;
 	int pre_sm;
 	int cv;
+	int chg_current;
 	bool charging;
 	bool error_recovery_flag;
 };
@@ -161,6 +162,12 @@ struct charger_custom_data {
 	int jeita_temp_t1_to_t2_cv;
 	int jeita_temp_t0_to_t1_cv;
 	int jeita_temp_below_t0_cv;
+	int jeita_temp_above_t4_chg_current;
+	int jeita_temp_t3_to_t4_chg_current;
+	int jeita_temp_t2_to_t3_chg_current;
+	int jeita_temp_t1_to_t2_chg_current;
+	int jeita_temp_t0_to_t1_chg_current;
+	int jeita_temp_below_t0_chg_current;
 	int temp_t4_thres;
 	int temp_t4_thres_minus_x_degree;
 	int temp_t3_thres;
@@ -235,6 +242,7 @@ struct charger_data {
 	int input_current_limit_by_aicl;
 	int junction_temp_min;
 	int junction_temp_max;
+	int policy_input_current_limit;
 };
 
 struct charger_manager {
@@ -341,6 +349,9 @@ struct charger_manager {
 
 	/* ATM */
 	bool atm_enabled;
+	struct wakeup_source *zte_usb_valid_wake_source;
+	struct mutex zte_update_lock;
+	struct delayed_work update_heartbeat_work;
 };
 
 /* charger related module interface */
@@ -363,6 +374,12 @@ extern int pmic_get_bif_battery_voltage(int *vbat);
 extern int pmic_is_bif_exist(void);
 extern int pmic_enable_hw_vbus_ovp(bool enable);
 extern bool pmic_is_battery_exist(void);
+extern uint get_bat_status(void);
+extern void mtk_charger_notify_battery_full(void);
+extern void mtk_charger_notify_battery_health_status(void);
+extern void zte_power_supply_changed(void);
+extern bool charger_ic_notify_eoc;
+extern int batt_full_design_capacity;
 
 /* FIXME */
 enum usb_state_enum {

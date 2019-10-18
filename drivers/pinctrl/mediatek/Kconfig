@@ -123,3 +123,10 @@ config PINCTRL_MT6397
 	select PINCTRL_MTK
 
 endif
+config GPIO_LCM_BL_PWM_CTL
+	bool "enable lcm backlight pwm control"
+	default n
+	help
+	  define GPIO_LCM_BL_PWM_CTL to enable lcm backlight pwm control.
+	  If you want to use lcm backlight pwm control, please make sure it is Y in xxx_defconfig.mk.
+	  If unsure, set N.

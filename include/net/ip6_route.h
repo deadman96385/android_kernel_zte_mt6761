@@ -118,6 +118,7 @@ static inline int ip6_route_get_saddr(struct net *net, struct rt6_info *rt,
 struct rt6_info *rt6_lookup(struct net *net, const struct in6_addr *daddr,
 			    const struct in6_addr *saddr, int oif, int flags);
 
+int ip6_operator_isop12(void);
 struct dst_entry *icmp6_dst_alloc(struct net_device *dev, struct flowi6 *fl6);
 int icmp6_dst_gc(void);
 
@@ -138,7 +139,6 @@ struct rt6_info *rt6_get_dflt_router(const struct in6_addr *addr,
 #ifdef CONFIG_MTK_IPV6_VZW
 struct rt6_info *rt6_get_dflt_router_expires(struct net_device *dev);
 #endif
-int ip6_operator_isop12(void);
 struct rt6_info *rt6_add_dflt_router(const struct in6_addr *gwaddr,
 				     struct net_device *dev, unsigned int pref);
 
